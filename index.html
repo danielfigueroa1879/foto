@@ -143,22 +143,40 @@
     background: #fff;
   }
   .result-actions {
-    display: flex; gap: 8px; justify-content: center;
-    margin-top: 14px; flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 14px;
   }
   .result-actions a, .result-actions button {
     background: var(--ink);
     color: #fff;
     border: none;
     border-radius: 10px;
-    padding: 11px 18px;
+    padding: 12px 14px;
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     text-decoration: none;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
   }
-  .result-actions .secondary { background: #fff; color: var(--ink); border: 1.5px solid var(--line); }
+  .result-actions .wa { background: #25D366; }
+  .result-actions .wa:hover { background: #1BAF51; }
+  .result-actions .mail { background: #EA4335; }
+  .result-actions .mail:hover { background: #C5372A; }
+  .result-actions .secondary {
+    background: #fff; color: var(--ink); border: 1.5px solid var(--line);
+    grid-column: 1 / -1;
+  }
+  @media (min-width: 500px) {
+    .result-actions { grid-template-columns: repeat(3, 1fr); }
+    .result-actions .secondary { grid-column: 1 / -1; }
+  }
 
   .toast {
     position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(60px);
@@ -234,19 +252,6 @@
     width: 26px; height: 26px; border-radius: 50%; background: var(--brand);
   }
 
-  /* Botón WhatsApp (soporte) */
-  .wa-btn {
-    position: fixed; bottom: 24px; right: 24px;
-    width: 52px; height: 52px; border-radius: 50%;
-    background: var(--green); color: #fff;
-    border: none;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 14px rgba(37,211,102,0.45), 0 2px 6px rgba(0,0,0,0.15);
-    z-index: 90;
-    text-decoration: none;
-  }
-  .wa-btn svg { width: 28px; height: 28px; fill: #fff; }
-
   /* Botón instalar app (aparece solo cuando el navegador ofrece instalación) */
   .install-banner {
     display: none;
@@ -296,8 +301,17 @@
     body { padding: 12px 8px 30px; }
     h1 { font-size: 20px; }
     .slots.two { grid-template-columns: 1fr; }
-    .wa-btn { bottom: 88px; right: 16px; width: 48px; height: 48px; }
   }
+
+  /* Selector de formato (JPG / PNG / PDF) */
+  .format-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .format-row .opt-btn { padding: 10px 8px; }
+  .format-row .opt-btn strong { font-size: 13px; }
+  .format-row .opt-btn small { font-size: 10px; }
 </style>
 </head>
 <body>
@@ -353,7 +367,25 @@
   </div>
 
   <div class="card">
-    <h2 id="stepTitle">3. Subir imágenes</h2>
+    <h2>3. Formato de descarga</h2>
+    <div class="format-row">
+      <button class="opt-btn active" data-fmt="jpg" type="button" onclick="setFmt(this,'jpg')">
+        <strong>JPG</strong>
+        <small>Comprimido</small>
+      </button>
+      <button class="opt-btn" data-fmt="png" type="button" onclick="setFmt(this,'png')">
+        <strong>PNG</strong>
+        <small>Sin pérdida</small>
+      </button>
+      <button class="opt-btn" data-fmt="pdf" type="button" onclick="setFmt(this,'pdf')">
+        <strong>PDF</strong>
+        <small>Imprimir</small>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="stepTitle">4. Subir imágenes</h2>
     <div id="slotsCont" class="slots two"></div>
     <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="fileSelected(this)">
   </div>
@@ -364,7 +396,9 @@
     <h2>Resultado</h2>
     <img id="resultImg" alt="Hoja generada">
     <div class="result-actions">
-      <a id="downloadLink" download="documento.jpg" href="#">⬇ Descargar JPG</a>
+      <a id="downloadLink" download="documento.jpg" href="#">⬇ Guardar</a>
+      <button type="button" class="wa" id="btnWhatsApp" onclick="enviarWhatsApp()">💬 WhatsApp</button>
+      <button type="button" class="mail" id="btnMail" onclick="enviarCorreo()">✉ Correo</button>
       <button class="secondary" type="button" onclick="reiniciar()">↺ Empezar de nuevo</button>
     </div>
   </div>
@@ -387,20 +421,14 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- WhatsApp -->
-<a class="wa-btn" href="https://wa.me/56937758716?text=Hola%2C%20necesito%20ayuda%20con%20el%20esc%C3%A1ner%20de%20documentos"
-   target="_blank" rel="noopener" title="Contactar por WhatsApp" aria-label="Contactar por WhatsApp">
-  <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M16.004 3.2c-7.06 0-12.8 5.74-12.8 12.8 0 2.26.6 4.46 1.72 6.4L3.2 28.8l6.58-1.72c1.86 1.02 3.96 1.56 6.22 1.56 7.06 0 12.8-5.74 12.8-12.8s-5.74-12.8-12.8-12.8zm0 23.36c-1.98 0-3.9-.52-5.58-1.5l-.4-.24-3.9 1.02 1.04-3.8-.26-.4c-1.08-1.72-1.66-3.72-1.66-5.78 0-5.9 4.8-10.7 10.72-10.7 5.9 0 10.72 4.8 10.72 10.72s-4.8 10.68-10.72 10.68zm5.86-8c-.32-.16-1.9-.94-2.2-1.04-.3-.1-.5-.16-.72.16-.22.32-.82 1.04-1 1.24-.18.22-.38.24-.7.08-.32-.16-1.36-.5-2.6-1.6-.96-.86-1.6-1.92-1.8-2.24-.18-.32-.02-.5.14-.66.14-.14.32-.38.48-.56.16-.18.22-.32.32-.54.1-.22.06-.4-.02-.56-.08-.16-.72-1.72-.98-2.36-.26-.62-.52-.54-.72-.54h-.62c-.22 0-.56.08-.86.4-.3.32-1.14 1.12-1.14 2.72s1.16 3.16 1.32 3.38c.16.22 2.3 3.5 5.58 4.9.78.34 1.38.54 1.86.68.78.24 1.5.22 2.06.14.62-.1 1.9-.78 2.18-1.54.28-.76.28-1.42.18-1.54-.08-.14-.28-.22-.6-.38z"/>
-  </svg>
-</a>
-
 <script>
   let tipo = 'dos';
   let tam = 'oficio';
+  let fmt = 'jpg';           // 'jpg' | 'png' | 'pdf'
   let frontBlob = null;
   let backBlob = null;
   let uniBlob = null;
+  let ultimoResultado = null; // { blob, ext, mime, filename }
 
   let stream = null;
   let facingMode = 'environment';
@@ -426,6 +454,12 @@
   function setTam(btn, t) {
     tam = t;
     document.querySelectorAll('[data-tam]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function setFmt(btn, f) {
+    fmt = f;
+    document.querySelectorAll('[data-fmt]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
 
@@ -612,53 +646,82 @@
     });
   }
 
-  // ===== Dos caras (misma matemática que NEXO) =====
-  async function generarDosCaras() {
-    const [imgF, imgB] = await Promise.all([loadImage(frontBlob), loadImage(backBlob)]);
+  // Dibuja la hoja completa sobre un canvas y lo devuelve (sin exportar).
+  async function dibujarHoja() {
     const [sheetW, sheetH] = sheetSize();
-    const cardW = Math.round(sheetW / 2);           // 50 % del ancho de la hoja
-    const cardH = Math.round(cardW / 1.586);        // aspecto CR80
-    const gap = 100;
-    const pairH = cardH * 2 + gap;
-    const shiftUp = 200;                             // el par se corre hacia arriba
-    const topY = Math.round((sheetH - pairH) / 2) - shiftUp;
-    const x = Math.round((sheetW - cardW) / 2);
-
     const canvas = document.createElement('canvas');
     canvas.width = sheetW;
     canvas.height = sheetH;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, sheetW, sheetH);
-    ctx.drawImage(imgF, x, topY, cardW, cardH);
-    ctx.drawImage(imgB, x, topY + cardH + gap, cardW, cardH);
 
-    return await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+    if (tipo === 'dos') {
+      // Misma matemática que NEXO: par centrado y corrido hacia arriba.
+      const [imgF, imgB] = await Promise.all([loadImage(frontBlob), loadImage(backBlob)]);
+      const cardW = Math.round(sheetW / 2);
+      const cardH = Math.round(cardW / 1.586);
+      const gap = 100;
+      const pairH = cardH * 2 + gap;
+      const shiftUp = 200;
+      const topY = Math.round((sheetH - pairH) / 2) - shiftUp;
+      const x = Math.round((sheetW - cardW) / 2);
+      ctx.drawImage(imgF, x, topY, cardW, cardH);
+      ctx.drawImage(imgB, x, topY + cardH + gap, cardW, cardH);
+    } else {
+      // Una cara: centrada preservando aspecto, máx 80 % ancho × 78 % alto.
+      const img = await loadImage(uniBlob);
+      const maxW = sheetW * 0.80;
+      const maxH = sheetH * 0.78;
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+      const w = Math.round(img.naturalWidth * scale);
+      const h = Math.round(img.naturalHeight * scale);
+      const x = Math.round((sheetW - w) / 2);
+      const y = Math.round((sheetH - h) / 2);
+      ctx.drawImage(img, x, y, w, h);
+    }
+    return canvas;
   }
 
-  // ===== Una cara: centrado en la hoja preservando aspecto =====
-  async function generarUna() {
-    const img = await loadImage(uniBlob);
-    const [sheetW, sheetH] = sheetSize();
+  // Carga jsPDF una sola vez (desde CDN) — solo cuando el usuario elige PDF.
+  let jsPDFPromise = null;
+  function cargarJsPDF() {
+    if (jsPDFPromise) return jsPDFPromise;
+    jsPDFPromise = new Promise((res, rej) => {
+      if (window.jspdf && window.jspdf.jsPDF) return res(window.jspdf.jsPDF);
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+      s.onload = () => (window.jspdf && window.jspdf.jsPDF) ? res(window.jspdf.jsPDF) : rej(new Error('jsPDF no disponible'));
+      s.onerror = () => rej(new Error('No se pudo cargar la librería PDF'));
+      document.head.appendChild(s);
+    });
+    return jsPDFPromise;
+  }
 
-    // El documento cabe en un área centrada de 80 % ancho × 78 % alto de la hoja.
-    const maxW = sheetW * 0.80;
-    const maxH = sheetH * 0.78;
-    const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
-    const w = Math.round(img.naturalWidth * scale);
-    const h = Math.round(img.naturalHeight * scale);
-    const x = Math.round((sheetW - w) / 2);
-    const y = Math.round((sheetH - h) / 2);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = sheetW;
-    canvas.height = sheetH;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, sheetW, sheetH);
-    ctx.drawImage(img, x, y, w, h);
-
-    return await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+  // Exporta el canvas en el formato elegido: {blob, ext, mime, previewUrl}
+  async function exportar(canvas) {
+    if (fmt === 'png') {
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      return { blob, ext: 'png', mime: 'image/png', previewUrl: URL.createObjectURL(blob) };
+    }
+    if (fmt === 'pdf') {
+      const JsPDF = await cargarJsPDF();
+      // Hoja oficio: 216 × 330 mm | carta: 216 × 279 mm.
+      const [mmW, mmH] = tam === 'oficio' ? [216, 330] : [216, 279];
+      const doc = new JsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [mmW, mmH],
+        compress: true
+      });
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      doc.addImage(dataUrl, 'JPEG', 0, 0, mmW, mmH);
+      const blob = doc.output('blob');
+      return { blob, ext: 'pdf', mime: 'application/pdf', previewUrl: URL.createObjectURL(blob) };
+    }
+    // JPG por defecto
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+    return { blob, ext: 'jpg', mime: 'image/jpeg', previewUrl: URL.createObjectURL(blob) };
   }
 
   async function generar() {
@@ -667,13 +730,22 @@
     btn.disabled = true;
     btn.textContent = 'Generando…';
     try {
-      const blob = tipo === 'dos' ? await generarDosCaras() : await generarUna();
-      const url = URL.createObjectURL(blob);
-      document.getElementById('resultImg').src = url;
-      const a = document.getElementById('downloadLink');
-      a.href = url;
+      const canvas = await dibujarHoja();
+      const { blob, ext, mime, previewUrl } = await exportar(canvas);
+
       const nom = tipo === 'dos' ? 'documento_ambas_caras' : 'documento';
-      a.download = `${nom}_${tam}.jpg`;
+      const filename = `${nom}_${tam}.${ext}`;
+      ultimoResultado = { blob, ext, mime, filename, url: previewUrl };
+
+      // Para PDF mostramos el canvas como preview (los <img> no muestran PDFs).
+      const previewImg = fmt === 'pdf' ? canvas.toDataURL('image/jpeg', 0.85) : previewUrl;
+      document.getElementById('resultImg').src = previewImg;
+
+      const a = document.getElementById('downloadLink');
+      a.href = previewUrl;
+      a.download = filename;
+      a.textContent = `⬇ Guardar ${ext.toUpperCase()}`;
+
       const card = document.getElementById('resultCard');
       card.classList.add('show');
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -686,6 +758,62 @@
     btn.textContent = original;
     updateBtn();
   }
+
+  // ===== Compartir por WhatsApp / Correo =====
+  // Fuerza la descarga del archivo (para que el usuario lo pueda adjuntar
+  // luego en la app que se abre). Necesario cuando el navegador no soporta
+  // navigator.share con archivos (típico en desktop y navegadores viejos).
+  function descargarArchivo() {
+    if (!ultimoResultado) return;
+    const a = document.createElement('a');
+    a.href = ultimoResultado.url;
+    a.download = ultimoResultado.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function compartirArchivo(texto, titulo) {
+    if (!ultimoResultado) return false;
+    if (!navigator.share) return false;
+    try {
+      const file = new File([ultimoResultado.blob], ultimoResultado.filename, { type: ultimoResultado.mime });
+      // Algunos navegadores soportan share() pero no share({files}). Testeamos:
+      if (navigator.canShare && !navigator.canShare({ files: [file] })) return false;
+      await navigator.share({ files: [file], title: titulo, text: texto });
+      return true;
+    } catch (e) {
+      // El usuario canceló el picker o el navegador falló → tratamos como no soportado.
+      if (e.name === 'AbortError') return true;   // usuario canceló, no hace fallback
+      return false;
+    }
+  }
+
+  async function enviarWhatsApp() {
+    if (!ultimoResultado) { showToast('Genera la hoja primero'); return; }
+    const texto = 'Documento escaneado 📄';
+    const ok = await compartirArchivo(texto, 'Documento escaneado');
+    if (ok) return;
+    // Fallback: descargamos el archivo y abrimos WhatsApp Web para que el usuario lo adjunte.
+    descargarArchivo();
+    showToast('Archivo descargado — adjúntalo en el chat de WhatsApp');
+    window.open('https://web.whatsapp.com/', '_blank', 'noopener');
+  }
+
+  async function enviarCorreo() {
+    if (!ultimoResultado) { showToast('Genera la hoja primero'); return; }
+    const texto = 'Adjunto el documento escaneado.';
+    const ok = await compartirArchivo(texto, 'Documento escaneado');
+    if (ok) return;
+    // Fallback: descargamos + abrimos el cliente de correo con asunto y cuerpo listos.
+    descargarArchivo();
+    showToast('Archivo descargado — adjúntalo al correo');
+    const subject = encodeURIComponent('Documento escaneado');
+    const body = encodeURIComponent('Adjunto el documento escaneado (' + ultimoResultado.filename + ').');
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+  window.enviarWhatsApp = enviarWhatsApp;
+  window.enviarCorreo = enviarCorreo;
 
   function reiniciar() {
     frontBlob = null; backBlob = null; uniBlob = null;
