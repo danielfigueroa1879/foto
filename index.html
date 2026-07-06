@@ -39,6 +39,71 @@
   h1 { font-size: 22px; margin: 4px 0 4px; letter-spacing: -0.02em; }
   .subtitle { color: var(--ink-mute); font-size: 13px; margin: 0 0 18px; }
 
+  /* ===== Asistente por pasos ===== */
+  .step { display: none; animation: fadeIn 0.25s ease; }
+  .step.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .progress {
+    display: flex; gap: 4px; margin-bottom: 12px; padding: 0 4px;
+  }
+  .progress-dot {
+    flex: 1; height: 4px; border-radius: 2px; background: var(--line);
+    transition: background 0.25s;
+  }
+  .progress-dot.done { background: var(--ink); }
+  .progress-dot.current { background: var(--ink); opacity: 0.7; }
+
+  .step-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .back-btn {
+    background: #fff; border: 1.5px solid var(--line); border-radius: 10px;
+    width: 40px; height: 40px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .back-btn:hover { background: var(--bg); }
+  .step-title {
+    flex: 1; font-size: 15px; font-weight: 700; color: var(--ink);
+  }
+  .step-title small {
+    display: block; font-size: 12px; font-weight: 500;
+    color: var(--ink-mute); margin-top: 1px;
+  }
+
+  /* Bienvenida (paso 0) */
+  .hero {
+    background: linear-gradient(135deg, #14141b 0%, #0A0A0A 100%);
+    border-radius: 20px;
+    padding: 32px 22px;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .hero-icon { font-size: 46px; margin-bottom: 12px; }
+  .hero h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .hero p { font-size: 13px; opacity: 0.75; margin: 0 0 20px; line-height: 1.45; }
+  .hero-btn {
+    background: #fff; color: var(--ink);
+    border: none; border-radius: 12px;
+    padding: 15px 28px; font: 700 15px inherit;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  }
+  .hero-btn:hover { transform: translateY(-1px); }
+  .hero-btn:active { transform: translateY(0); }
+
+  /* Pie de página */
+  .footer {
+    margin-top: 32px; padding: 20px 8px; text-align: center;
+    font-size: 12px; color: var(--ink-mute); line-height: 1.5;
+  }
+  .footer .autor { color: var(--ink-soft); font-weight: 600; }
+  .footer .rol { color: var(--ink-mute); font-size: 11px; }
+
   .card {
     background: var(--surface);
     border: 1px solid var(--line);
@@ -338,70 +403,134 @@
     Toca el ícono <b>Compartir</b> ⬆︎ abajo en Safari → <b>"Añadir a pantalla de inicio"</b>.
   </div>
 
-  <div class="card">
-    <h2>1. Tipo de documento</h2>
-    <div class="options">
-      <button class="opt-btn active" data-tipo="dos" type="button" onclick="setTipo(this,'dos')">
-        <strong>Dos caras</strong>
-        <small>Cédula · Licencia · Tarjeta</small>
-      </button>
-      <button class="opt-btn" data-tipo="una" type="button" onclick="setTipo(this,'una')">
-        <strong>Una cara</strong>
-        <small>Certificado · Contrato · Hoja</small>
-      </button>
+  <!-- Indicador de progreso -->
+  <div class="progress" id="progress" style="display:none;">
+    <div class="progress-dot" data-dot="1"></div>
+    <div class="progress-dot" data-dot="2"></div>
+    <div class="progress-dot" data-dot="3"></div>
+    <div class="progress-dot" data-dot="4"></div>
+    <div class="progress-dot" data-dot="5"></div>
+  </div>
+
+  <!-- ===== Paso 0: Bienvenida ===== -->
+  <section class="step active" data-step="0">
+    <div class="hero">
+      <div class="hero-icon">📄</div>
+      <h2>Escanea tu documento</h2>
+      <p>Combina las dos caras de una cédula o licencia, o centra un documento en una hoja lista para imprimir o enviar.</p>
+      <button type="button" class="hero-btn" onclick="irPaso(1)">📷 Comenzar</button>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
-    <h2>2. Tamaño de hoja</h2>
-    <div class="options">
-      <button class="opt-btn active" data-tam="oficio" type="button" onclick="setTam(this,'oficio')">
-        <strong>Oficio</strong>
-        <small>8.5 × 13 pulgadas</small>
-      </button>
-      <button class="opt-btn" data-tam="carta" type="button" onclick="setTam(this,'carta')">
-        <strong>Carta</strong>
-        <small>8.5 × 11 pulgadas</small>
-      </button>
+  <!-- ===== Paso 1: Tipo de documento ===== -->
+  <section class="step" data-step="1">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(0)" aria-label="Volver">‹</button>
+      <div class="step-title">Tipo de documento
+        <small>Paso 1 de 5</small>
+      </div>
     </div>
-  </div>
-
-  <div class="card">
-    <h2>3. Formato de descarga</h2>
-    <div class="format-row">
-      <button class="opt-btn active" data-fmt="jpg" type="button" onclick="setFmt(this,'jpg')">
-        <strong>JPG</strong>
-        <small>Comprimido</small>
-      </button>
-      <button class="opt-btn" data-fmt="png" type="button" onclick="setFmt(this,'png')">
-        <strong>PNG</strong>
-        <small>Sin pérdida</small>
-      </button>
-      <button class="opt-btn" data-fmt="pdf" type="button" onclick="setFmt(this,'pdf')">
-        <strong>PDF</strong>
-        <small>Imprimir</small>
-      </button>
+    <div class="card">
+      <div class="options">
+        <button class="opt-btn" data-tipo="dos" type="button" onclick="setTipo(this,'dos')">
+          <strong>Dos caras</strong>
+          <small>Cédula · Licencia · Tarjeta</small>
+        </button>
+        <button class="opt-btn" data-tipo="una" type="button" onclick="setTipo(this,'una')">
+          <strong>Una cara</strong>
+          <small>Certificado · Contrato · Hoja</small>
+        </button>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
-    <h2 id="stepTitle">4. Subir imágenes</h2>
-    <div id="slotsCont" class="slots two"></div>
-    <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="fileSelected(this)">
-  </div>
-
-  <button class="btn-main" id="btnGenerar" type="button" onclick="generar()" disabled>Generar hoja</button>
-
-  <div class="card result" id="resultCard">
-    <h2>Resultado</h2>
-    <img id="resultImg" alt="Hoja generada">
-    <div class="result-actions">
-      <a id="downloadLink" download="documento.jpg" href="#">⬇ Guardar</a>
-      <button type="button" class="wa" id="btnWhatsApp" onclick="enviarWhatsApp()">💬 WhatsApp</button>
-      <button type="button" class="mail" id="btnMail" onclick="enviarCorreo()">✉ Correo</button>
-      <button class="secondary" type="button" onclick="reiniciar()">↺ Empezar de nuevo</button>
+  <!-- ===== Paso 2: Tamaño de hoja ===== -->
+  <section class="step" data-step="2">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(1)" aria-label="Volver">‹</button>
+      <div class="step-title">Tamaño de hoja
+        <small>Paso 2 de 5</small>
+      </div>
     </div>
-  </div>
+    <div class="card">
+      <div class="options">
+        <button class="opt-btn" data-tam="oficio" type="button" onclick="setTam(this,'oficio')">
+          <strong>Oficio</strong>
+          <small>8.5 × 13 pulgadas</small>
+        </button>
+        <button class="opt-btn" data-tam="carta" type="button" onclick="setTam(this,'carta')">
+          <strong>Carta</strong>
+          <small>8.5 × 11 pulgadas</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Paso 3: Formato de descarga ===== -->
+  <section class="step" data-step="3">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(2)" aria-label="Volver">‹</button>
+      <div class="step-title">Formato de descarga
+        <small>Paso 3 de 5</small>
+      </div>
+    </div>
+    <div class="card">
+      <div class="format-row">
+        <button class="opt-btn" data-fmt="jpg" type="button" onclick="setFmt(this,'jpg')">
+          <strong>JPG</strong>
+          <small>Comprimido</small>
+        </button>
+        <button class="opt-btn" data-fmt="png" type="button" onclick="setFmt(this,'png')">
+          <strong>PNG</strong>
+          <small>Sin pérdida</small>
+        </button>
+        <button class="opt-btn" data-fmt="pdf" type="button" onclick="setFmt(this,'pdf')">
+          <strong>PDF</strong>
+          <small>Imprimir</small>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Paso 4: Subir imágenes ===== -->
+  <section class="step" data-step="4">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(3)" aria-label="Volver">‹</button>
+      <div class="step-title">Subir imágenes
+        <small>Paso 4 de 5</small>
+      </div>
+    </div>
+    <div class="card">
+      <div id="slotsCont" class="slots two"></div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="fileSelected(this)">
+    </div>
+    <button class="btn-main" id="btnGenerar" type="button" onclick="generarYAvanzar()" disabled>Generar hoja</button>
+  </section>
+
+  <!-- ===== Paso 5: Resultado ===== -->
+  <section class="step" data-step="5">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(4)" aria-label="Volver">‹</button>
+      <div class="step-title">Resultado
+        <small>Paso 5 de 5</small>
+      </div>
+    </div>
+    <div class="card">
+      <img id="resultImg" alt="Hoja generada" style="max-width:100%; max-height:60vh; border:1px solid var(--line); border-radius:10px; display:block; margin:0 auto; background:#fff;">
+      <div class="result-actions">
+        <a id="downloadLink" download="documento.jpg" href="#">⬇ Guardar</a>
+        <button type="button" class="wa" id="btnWhatsApp" onclick="enviarWhatsApp()">💬 WhatsApp</button>
+        <button type="button" class="mail" id="btnMail" onclick="enviarCorreo()">✉ Correo</button>
+        <button class="secondary" type="button" onclick="reiniciar()">↺ Empezar de nuevo</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    © 2026 Todos los derechos reservados.<br>
+    Plataforma desarrollada por <span class="autor">Daniel Figueroa Chacama</span>.<br>
+    <span class="rol">Ingeniero en Informática &amp; Ciberseguridad</span>
+  </footer>
 </div>
 
 <!-- Modal cámara -->
@@ -429,6 +558,7 @@
   let backBlob = null;
   let uniBlob = null;
   let ultimoResultado = null; // { blob, ext, mime, filename }
+  let installBannerReady = false;
 
   let stream = null;
   let facingMode = 'environment';
@@ -449,19 +579,49 @@
     btn.classList.add('active');
     renderSlots();
     updateBtn();
+    setTimeout(() => irPaso(2), 200);
   }
 
   function setTam(btn, t) {
     tam = t;
     document.querySelectorAll('[data-tam]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    setTimeout(() => irPaso(3), 200);
   }
 
   function setFmt(btn, f) {
     fmt = f;
     document.querySelectorAll('[data-fmt]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    setTimeout(() => irPaso(4), 200);
   }
+
+  // ===== Navegación por pasos =====
+  let pasoActual = 0;
+  const TOTAL_PASOS = 5;
+
+  function irPaso(n) {
+    pasoActual = n;
+    document.querySelectorAll('.step').forEach(s => {
+      s.classList.toggle('active', Number(s.dataset.step) === n);
+    });
+    // Barra de progreso: visible desde el paso 1
+    const prog = document.getElementById('progress');
+    if (n === 0) prog.style.display = 'none';
+    else {
+      prog.style.display = 'flex';
+      prog.querySelectorAll('.progress-dot').forEach(d => {
+        const dn = Number(d.dataset.dot);
+        d.classList.remove('done', 'current');
+        if (dn < n) d.classList.add('done');
+        else if (dn === n) d.classList.add('current');
+      });
+    }
+    // El banner de instalación solo tiene sentido en la portada
+    document.getElementById('installBanner').style.display = (n === 0 && installBannerReady) ? 'flex' : 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  window.irPaso = irPaso;
 
   function renderSlots() {
     const cont = document.getElementById('slotsCont');
@@ -746,9 +906,7 @@
       a.download = filename;
       a.textContent = `⬇ Guardar ${ext.toUpperCase()}`;
 
-      const card = document.getElementById('resultCard');
-      card.classList.add('show');
-      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      irPaso(5);
       showToast('Hoja generada');
     } catch (e) {
       console.error(e);
@@ -758,6 +916,9 @@
     btn.textContent = original;
     updateBtn();
   }
+  // Alias que ejecuta el mismo flujo (mantiene compatibilidad con el HTML).
+  const generarYAvanzar = generar;
+  window.generarYAvanzar = generarYAvanzar;
 
   // ===== Compartir por WhatsApp / Correo =====
   // Fuerza la descarga del archivo (para que el usuario lo pueda adjuntar
@@ -817,10 +978,13 @@
 
   function reiniciar() {
     frontBlob = null; backBlob = null; uniBlob = null;
-    document.getElementById('resultCard').classList.remove('show');
+    ultimoResultado = null;
+    // Deseleccionar todas las opciones para que el usuario empiece limpio.
+    document.querySelectorAll('[data-tipo], [data-tam], [data-fmt]').forEach(b => b.classList.remove('active'));
+    tipo = 'dos'; tam = 'oficio'; fmt = 'jpg';
     renderSlots();
     updateBtn();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    irPaso(0);
   }
 
   // Render inicial
@@ -847,7 +1011,8 @@
     deferredInstall = e;
     if (sessionStorage.getItem('installDismissed') !== '1' &&
         !window.matchMedia('(display-mode: standalone)').matches) {
-      banner.classList.add('show');
+      installBannerReady = true;
+      if (pasoActual === 0) banner.classList.add('show');
     }
   });
 
