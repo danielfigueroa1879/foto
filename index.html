@@ -116,28 +116,50 @@
     color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em;
   }
 
-  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  /* Opciones grandes (mobile-first): cada opción es una card apilada */
+  .options { display: grid; grid-template-columns: 1fr; gap: 12px; }
   .opt-btn {
     background: var(--surface);
-    border: 1.5px solid var(--line);
-    border-radius: 12px;
-    padding: 12px 10px;
+    border: 2px solid var(--line);
+    border-radius: 16px;
+    padding: 26px 20px;
     font-family: inherit;
-    font-size: 13px;
     color: var(--ink);
     cursor: pointer;
-    text-align: center;
+    text-align: left;
     transition: all 0.15s;
     -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 92px;
   }
-  .opt-btn:hover { border-color: var(--ink-soft); }
+  .opt-btn:hover { border-color: var(--ink-soft); transform: translateY(-1px); }
+  .opt-btn:active { transform: translateY(0); }
   .opt-btn.active {
     border-color: var(--ink);
     background: var(--ink);
     color: #fff;
   }
-  .opt-btn strong { display: block; font-size: 14px; font-weight: 700; margin-bottom: 2px; }
-  .opt-btn small { display: block; opacity: 0.7; font-size: 11px; }
+  .opt-btn .opt-emoji {
+    font-size: 32px; line-height: 1;
+    flex-shrink: 0;
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    border-radius: 12px;
+    transition: background 0.15s;
+  }
+  .opt-btn.active .opt-emoji { background: rgba(255,255,255,0.12); }
+  .opt-btn .opt-text { flex: 1; }
+  .opt-btn strong { display: block; font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .opt-btn small { display: block; opacity: 0.65; font-size: 13px; line-height: 1.35; }
+  .opt-btn .opt-arrow {
+    font-size: 22px; opacity: 0.3; flex-shrink: 0;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .opt-btn:hover .opt-arrow { opacity: 0.6; transform: translateX(2px); }
+  .opt-btn.active .opt-arrow { opacity: 0.9; }
 
   .slots { display: grid; gap: 10px; }
   .slots.two { grid-template-columns: 1fr 1fr; }
@@ -368,15 +390,12 @@
     .slots.two { grid-template-columns: 1fr; }
   }
 
-  /* Selector de formato (JPG / PNG / PDF) */
+  /* Formato: comparte estilo con .options — apilado, cards grandes */
   .format-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
-  .format-row .opt-btn { padding: 10px 8px; }
-  .format-row .opt-btn strong { font-size: 13px; }
-  .format-row .opt-btn small { font-size: 10px; }
 </style>
 </head>
 <body>
@@ -433,12 +452,20 @@
     <div class="card">
       <div class="options">
         <button class="opt-btn" data-tipo="dos" type="button" onclick="setTipo(this,'dos')">
-          <strong>Dos caras</strong>
-          <small>Cédula · Licencia · Tarjeta</small>
+          <span class="opt-emoji">🪪</span>
+          <span class="opt-text">
+            <strong>Dos caras</strong>
+            <small>Cédula · Licencia · Tarjeta</small>
+          </span>
+          <span class="opt-arrow">›</span>
         </button>
         <button class="opt-btn" data-tipo="una" type="button" onclick="setTipo(this,'una')">
-          <strong>Una cara</strong>
-          <small>Certificado · Contrato · Hoja</small>
+          <span class="opt-emoji">📄</span>
+          <span class="opt-text">
+            <strong>Una cara</strong>
+            <small>Certificado · Contrato · Hoja</small>
+          </span>
+          <span class="opt-arrow">›</span>
         </button>
       </div>
     </div>
@@ -455,12 +482,20 @@
     <div class="card">
       <div class="options">
         <button class="opt-btn" data-tam="oficio" type="button" onclick="setTam(this,'oficio')">
-          <strong>Oficio</strong>
-          <small>8.5 × 13 pulgadas</small>
+          <span class="opt-emoji">📏</span>
+          <span class="opt-text">
+            <strong>Oficio</strong>
+            <small>8.5 × 13 pulgadas — más largo, ideal para dos cédulas</small>
+          </span>
+          <span class="opt-arrow">›</span>
         </button>
         <button class="opt-btn" data-tam="carta" type="button" onclick="setTam(this,'carta')">
-          <strong>Carta</strong>
-          <small>8.5 × 11 pulgadas</small>
+          <span class="opt-emoji">📃</span>
+          <span class="opt-text">
+            <strong>Carta</strong>
+            <small>8.5 × 11 pulgadas — tamaño estándar de oficina</small>
+          </span>
+          <span class="opt-arrow">›</span>
         </button>
       </div>
     </div>
@@ -477,16 +512,28 @@
     <div class="card">
       <div class="format-row">
         <button class="opt-btn" data-fmt="jpg" type="button" onclick="setFmt(this,'jpg')">
-          <strong>JPG</strong>
-          <small>Comprimido</small>
+          <span class="opt-emoji">🖼️</span>
+          <span class="opt-text">
+            <strong>JPG</strong>
+            <small>Comprimido — archivo liviano para enviar</small>
+          </span>
+          <span class="opt-arrow">›</span>
         </button>
         <button class="opt-btn" data-fmt="png" type="button" onclick="setFmt(this,'png')">
-          <strong>PNG</strong>
-          <small>Sin pérdida</small>
+          <span class="opt-emoji">🎨</span>
+          <span class="opt-text">
+            <strong>PNG</strong>
+            <small>Sin pérdida — mejor calidad, archivo más pesado</small>
+          </span>
+          <span class="opt-arrow">›</span>
         </button>
         <button class="opt-btn" data-fmt="pdf" type="button" onclick="setFmt(this,'pdf')">
-          <strong>PDF</strong>
-          <small>Imprimir</small>
+          <span class="opt-emoji">📑</span>
+          <span class="opt-text">
+            <strong>PDF</strong>
+            <small>Formato documento — listo para imprimir</small>
+          </span>
+          <span class="opt-arrow">›</span>
         </button>
       </div>
     </div>
