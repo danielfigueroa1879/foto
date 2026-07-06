@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Escáner de Documentos</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0A0A0A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Escáner">
+<link rel="apple-touch-icon" href="favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="96x96" href="favicon/favicon-96x96.png">
+<link rel="icon" type="image/svg+xml" href="favicon/favicon.svg">
+<link rel="shortcut icon" href="favicon/favicon.ico">
+
+<!-- Open Graph / WhatsApp -->
+<meta property="og:title" content="Escáner de Documentos">
+<meta property="og:description" content="Combina frente y reverso o centra un documento en una hoja lista para imprimir.">
+<meta property="og:image" content="favicon/web-app-manifest-512x512.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #f7f7f9;
+    --ink: #0A0A0A;
+    --ink-soft: #4a4a52;
+    --ink-mute: #8a8a92;
+    --line: #e2e2e6;
+    --surface: #ffffff;
+    --brand: #E82127;
+    --green: #25D366;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 16px 12px 40px;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 4px 0 4px; letter-spacing: -0.02em; }
+  .subtitle { color: var(--ink-mute); font-size: 13px; margin: 0 0 18px; }
+
+  /* ===== Asistente por pasos ===== */
+  .step { display: none; animation: fadeIn 0.25s ease; }
+  .step.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .progress {
+    display: flex; gap: 4px; margin-bottom: 12px; padding: 0 4px;
+  }
+  .progress-dot {
+    flex: 1; height: 4px; border-radius: 2px; background: var(--line);
+    transition: background 0.25s;
+  }
+  .progress-dot.done { background: var(--ink); }
+  .progress-dot.current { background: var(--ink); opacity: 0.7; }
+
+  .step-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  }
+  .back-btn {
+    background: #fff; border: 1.5px solid var(--line); border-radius: 10px;
+    width: 40px; height: 40px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--ink);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .back-btn:hover { background: var(--bg); }
+  .step-title {
+    flex: 1; font-size: 15px; font-weight: 700; color: var(--ink);
+  }
+  .step-title small {
+    display: block; font-size: 12px; font-weight: 500;
+    color: var(--ink-mute); margin-top: 1px;
+  }
+
+  /* Bienvenida (paso 0) */
+  .hero {
+    background: linear-gradient(135deg, #14141b 0%, #0A0A0A 100%);
+    border-radius: 20px;
+    padding: 32px 22px;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .hero-icon { font-size: 46px; margin-bottom: 12px; }
+  .hero h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.02em; }
+  .hero p { font-size: 13px; opacity: 0.75; margin: 0 0 20px; line-height: 1.45; }
+  .hero-btn {
+    background: #fff; color: var(--ink);
+    border: none; border-radius: 12px;
+    padding: 15px 28px; font: 700 15px inherit;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+    display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  }
+  .hero-btn:hover { transform: translateY(-1px); }
+  .hero-btn:active { transform: translateY(0); }
+
+  /* Pie de página */
+  .footer {
+    margin-top: 32px; padding: 20px 8px; text-align: center;
+    font-size: 12px; color: var(--ink-mute); line-height: 1.5;
+  }
+  .footer .autor { color: var(--ink-soft); font-weight: 600; }
+  .footer .rol { color: var(--ink-mute); font-size: 11px; }
+
+  /* Nombre del archivo (paso resultado) */
+  .name-row {
+    display: flex; align-items: stretch;
+    background: #fafafb;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 0;
+    margin: 14px 0 4px;
+    overflow: hidden;
+  }
+  .name-row label {
+    display: flex; align-items: center;
+    padding: 12px 12px 12px 14px;
+    font-size: 12px; font-weight: 700;
+    color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .name-row input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font: 600 15px inherit;
+    color: var(--ink);
+    padding: 12px 8px;
+    min-width: 0;
+    outline: none;
+  }
+  .name-row .ext {
+    display: flex; align-items: center;
+    padding: 0 14px;
+    font: 600 13px inherit;
+    color: var(--ink-mute);
+    background: #eef0f3;
+  }
+  .name-hint {
+    font-size: 11px; color: var(--ink-mute);
+    margin: 0 4px 12px; line-height: 1.35;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .card h2 {
+    font-size: 14px; margin: 0 0 10px; font-weight: 700;
+    color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  /* Opciones grandes (mobile-first): cada opción es una card apilada */
+  .options { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .opt-btn {
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 16px;
+    padding: 26px 20px;
+    font-family: inherit;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 92px;
+  }
+  .opt-btn:hover { border-color: var(--ink-soft); transform: translateY(-1px); }
+  .opt-btn:active { transform: translateY(0); }
+  .opt-btn.active {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: #fff;
+  }
+  .opt-btn .opt-emoji {
+    font-size: 32px; line-height: 1;
+    flex-shrink: 0;
+    width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    border-radius: 12px;
+    transition: background 0.15s;
+  }
+  .opt-btn.active .opt-emoji { background: rgba(255,255,255,0.12); }
+  .opt-btn .opt-text { flex: 1; }
+  .opt-btn strong { display: block; font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .opt-btn small { display: block; opacity: 0.65; font-size: 13px; line-height: 1.35; }
+  .opt-btn .opt-arrow {
+    font-size: 22px; opacity: 0.3; flex-shrink: 0;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  .opt-btn:hover .opt-arrow { opacity: 0.6; transform: translateX(2px); }
+  .opt-btn.active .opt-arrow { opacity: 0.9; }
+
+  .slots { display: grid; gap: 10px; }
+  .slots.two { grid-template-columns: 1fr 1fr; }
+  .slots.one { grid-template-columns: 1fr; }
+
+  .slot {
+    background: #fafafb;
+    border: 1.5px dashed var(--line);
+    border-radius: 14px;
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 160px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .slot.has-image { background: #fff; border-style: solid; border-color: var(--line); }
+  .slot-label {
+    font-size: 11px; font-weight: 700; color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+  }
+  .slot-placeholder { font-size: 34px; opacity: 0.4; margin: 8px 0 4px; }
+  .slot-preview {
+    max-width: 100%; max-height: 140px; border-radius: 6px;
+    object-fit: contain; margin: 4px 0;
+  }
+  .slot-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+  .slot-btn {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--ink);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .slot-btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .slot-btn:hover { opacity: 0.85; }
+
+  .btn-main {
+    width: 100%;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    margin: 14px 0;
+    letter-spacing: 0.02em;
+  }
+  .btn-main:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-main:not(:disabled):hover { background: var(--brand); }
+
+  .result { display: none; text-align: center; }
+  .result.show { display: block; }
+  .result img {
+    max-width: 100%;
+    max-height: 65vh;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+    background: #fff;
+  }
+  .result-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .result-actions a, .result-actions button {
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .result-actions .wa { background: #25D366; }
+  .result-actions .wa:hover { background: #1BAF51; }
+  .result-actions .mail { background: #EA4335; }
+  .result-actions .mail:hover { background: #C5372A; }
+  .result-actions .secondary {
+    background: #fff; color: var(--ink); border: 1.5px solid var(--line);
+    grid-column: 1 / -1;
+  }
+  @media (min-width: 500px) {
+    .result-actions { grid-template-columns: repeat(3, 1fr); }
+    .result-actions .secondary { grid-column: 1 / -1; }
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%) translateY(60px);
+    background: var(--ink); color: #fff;
+    padding: 12px 18px; border-radius: 24px;
+    font-size: 13px; font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    opacity: 0; transition: all 0.3s;
+    z-index: 200; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== Webcam ===== */
+  .cam-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #000;
+    z-index: 100;
+    flex-direction: column;
+  }
+  .cam-modal.show { display: flex; }
+  .cam-instr {
+    color: #fff;
+    text-align: center;
+    padding: 14px 16px;
+    font-size: 13px;
+    background: rgba(0,0,0,0.5);
+    font-weight: 600;
+  }
+  .cam-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  .cam-video { width: 100%; height: 100%; object-fit: cover; }
+  .cam-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  .cam-cutout {
+    border: 3px solid #34C759;
+    border-radius: 16px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.65), 0 0 20px rgba(52,199,89,0.5);
+    position: relative;
+  }
+  .cam-cutout::before {
+    content: '';
+    position: absolute;
+    top: 10%; left: 8%; right: 8%; bottom: 10%;
+    border: 1px dashed rgba(255,255,255,0.35);
+    border-radius: 8px;
+  }
+  .cam-cutout.cr80 { width: 88%; max-width: 390px; aspect-ratio: 1.586; }
+  .cam-cutout.portrait { width: 78%; max-width: 400px; aspect-ratio: 0.707; }
+  .cam-controls {
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 20px; background: #000;
+  }
+  .cam-btn {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #333; color: #fff;
+    border: none; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cam-btn.capture {
+    width: 72px; height: 72px; background: #fff;
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.2);
+  }
+  .cam-btn.capture > div {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--brand);
+  }
+
+  /* Botón instalar app (aparece solo cuando el navegador ofrece instalación) */
+  .install-banner {
+    display: none;
+    background: var(--ink);
+    color: #fff;
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    align-items: center;
+    gap: 12px;
+  }
+  .install-banner.show { display: flex; }
+  .install-banner .ico { font-size: 22px; }
+  .install-banner .txt { flex: 1; font-size: 13px; line-height: 1.35; }
+  .install-banner .txt b { display: block; font-size: 14px; margin-bottom: 2px; }
+  .install-banner button {
+    background: #fff; color: var(--ink);
+    border: none; border-radius: 10px;
+    padding: 9px 14px; font: 700 13px inherit;
+    cursor: pointer;
+  }
+  .install-banner .dismiss {
+    background: transparent; color: #fff; padding: 6px 8px; font-weight: 400;
+    opacity: 0.6;
+  }
+
+  /* Instrucciones iOS (Safari no dispara beforeinstallprompt) */
+  .ios-hint {
+    display: none;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+  }
+  .ios-hint.show { display: block; }
+  .ios-hint b { color: var(--ink); }
+  .ios-hint .close {
+    float: right; background: none; border: none;
+    font-size: 18px; color: var(--ink-mute); cursor: pointer; padding: 0 4px;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 12px 8px 30px; }
+    h1 { font-size: 20px; }
+    .slots.two { grid-template-columns: 1fr; }
+  }
+
+  /* Formato: comparte estilo con .options — apilado, cards grandes */
+  .format-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Escáner de Documentos</h1>
+  <p class="subtitle">Combina frente y reverso, o centra un documento en una hoja lista para imprimir.</p>
+
+  <!-- Banner de instalación (Chrome/Android/Edge) -->
+  <div class="install-banner" id="installBanner">
+    <span class="ico">📲</span>
+    <div class="txt">
+      <b>Instalar como app</b>
+      Guárdala en el celular y ábrela como cualquier aplicación.
+    </div>
+    <button type="button" id="btnInstall">Instalar</button>
+    <button type="button" class="dismiss" onclick="ocultarInstall()" title="Ocultar">✕</button>
+  </div>
+
+  <!-- Instrucciones iOS (Safari no permite instalación automática) -->
+  <div class="ios-hint" id="iosHint">
+    <button class="close" type="button" onclick="ocultarIOS()">✕</button>
+    <b>Instalar en iPhone/iPad</b>
+    Toca el ícono <b>Compartir</b> ⬆︎ abajo en Safari → <b>"Añadir a pantalla de inicio"</b>.
+  </div>
+
+  <!-- Indicador de progreso -->
+  <div class="progress" id="progress" style="display:none;">
+    <div class="progress-dot" data-dot="1"></div>
+    <div class="progress-dot" data-dot="2"></div>
+    <div class="progress-dot" data-dot="3"></div>
+    <div class="progress-dot" data-dot="4"></div>
+    <div class="progress-dot" data-dot="5"></div>
+  </div>
+
+  <!-- ===== Paso 0: Bienvenida ===== -->
+  <section class="step active" data-step="0">
+    <div class="hero">
+      <div class="hero-icon">📄</div>
+      <h2>Escanea tu documento</h2>
+      <p>Combina las dos caras de una cédula o licencia, o centra un documento en una hoja lista para imprimir o enviar.</p>
+      <button type="button" class="hero-btn" onclick="irPaso(1)">📷 Comenzar</button>
+    </div>
+  </section>
+
+  <!-- ===== Paso 1: Tipo de documento ===== -->
+  <section class="step" data-step="1">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(0)" aria-label="Volver">‹</button>
+      <div class="step-title">Tipo de documento
+        <small>Paso 1 de 5</small>
+      </div>
+    </div>
+    <div class="card">
+      <div class="options">
+        <button class="opt-btn" data-tipo="dos" type="button" onclick="setTipo(this,'dos')">
+          <span class="opt-emoji">🪪</span>
+          <span class="opt-text">
+            <strong>Dos caras</strong>
+            <small>Cédula · Licencia · Tarjeta</small>
+          </span>
+          <span class="opt-arrow">›</span>
+        </button>
+        <button class="opt-btn" data-tipo="una" type="button" onclick="setTipo(this,'una')">
+          <span class="opt-emoji">📄</span>
+          <span class="opt-text">
+            <strong>Una cara</strong>
+            <small>Certificado · Contrato · Hoja</small>
+          </span>
+          <span class="opt-arrow">›</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Paso 2: Tamaño de hoja ===== -->
+  <section class="step" data-step="2">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(1)" aria-label="Volver">‹</button>
+      <div class="step-title">Tamaño de hoja
+        <small>Paso 2 de 5</small>
+      </div>
+    </div>
+    <div class="card">
+      <div class="options">
+        <button class="opt-btn" data-tam="oficio" type="button" onclick="setTam(this,'oficio')">
+          <span class="opt-emoji">📏</span>
+          <span class="opt-text">
+            <strong>Oficio</strong>
+            <small>8.5 × 13 pulgadas — más largo, ideal para dos cédulas</small>
+          </span>
+          <span class="opt-arrow">›</span>
+        </button>
+        <button class="opt-btn" data-tam="carta" type="button" onclick="setTam(this,'carta')">
+          <span class="opt-emoji">📃</span>
+          <span class="opt-text">
+            <strong>Carta</strong>
+            <small>8.5 × 11 pulgadas — tamaño estándar de oficina</small>
+          </span>
+          <span class="opt-arrow">›</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Paso 3: Formato de descarga ===== -->
+  <section class="step" data-step="3">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(2)" aria-label="Volver">‹</button>
+      <div class="step-title">Formato de descarga
+        <small>Paso 3 de 5</small>
+      </div>
+    </div>
+    <div class="card">
+      <div class="format-row">
+        <button class="opt-btn" data-fmt="jpg" type="button" onclick="setFmt(this,'jpg')">
+          <span class="opt-emoji">🖼️</span>
+          <span class="opt-text">
+            <strong>JPG</strong>
+            <small>Comprimido — archivo liviano para enviar</small>
+          </span>
+          <span class="opt-arrow">›</span>
+        </button>
+        <button class="opt-btn" data-fmt="png" type="button" onclick="setFmt(this,'png')">
+          <span class="opt-emoji">🎨</span>
+          <span class="opt-text">
+            <strong>PNG</strong>
+            <small>Sin pérdida — mejor calidad, archivo más pesado</small>
+          </span>
+          <span class="opt-arrow">›</span>
+        </button>
+        <button class="opt-btn" data-fmt="pdf" type="button" onclick="setFmt(this,'pdf')">
+          <span class="opt-emoji">📑</span>
+          <span class="opt-text">
+            <strong>PDF</strong>
+            <small>Formato documento — listo para imprimir</small>
+          </span>
+          <span class="opt-arrow">›</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Paso 4: Subir imágenes ===== -->
+  <section class="step" data-step="4">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(3)" aria-label="Volver">‹</button>
+      <div class="step-title">Subir imágenes
+        <small>Paso 4 de 5</small>
+      </div>
+    </div>
+    <div class="card">
+      <div id="slotsCont" class="slots two"></div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="fileSelected(this)">
+    </div>
+    <button class="btn-main" id="btnGenerar" type="button" onclick="generarYAvanzar()" disabled>Generar hoja</button>
+  </section>
+
+  <!-- ===== Paso 5: Resultado ===== -->
+  <section class="step" data-step="5">
+    <div class="step-head">
+      <button class="back-btn" type="button" onclick="irPaso(4)" aria-label="Volver">‹</button>
+      <div class="step-title">Resultado
+        <small>Paso 5 de 5</small>
+      </div>
+    </div>
+    <div class="card">
+      <img id="resultImg" alt="Hoja generada" style="max-width:100%; max-height:60vh; border:1px solid var(--line); border-radius:10px; display:block; margin:0 auto; background:#fff;">
+
+      <div class="name-row">
+        <label for="nombreArchivo">Nombre</label>
+        <input id="nombreArchivo" type="text" placeholder="documento" autocomplete="off"
+               oninput="actualizarNombre()">
+        <span class="ext" id="nombreExt">.jpg</span>
+      </div>
+      <p class="name-hint">Este será el nombre del archivo al guardarlo o enviarlo.</p>
+
+      <div class="result-actions">
+        <a id="downloadLink" download="documento.jpg" href="#">⬇ Guardar</a>
+        <button type="button" class="wa" id="btnWhatsApp" onclick="enviarWhatsApp()">💬 WhatsApp</button>
+        <button type="button" class="mail" id="btnMail" onclick="enviarCorreo()">✉ Correo</button>
+        <button class="secondary" type="button" onclick="reiniciar()">↺ Empezar de nuevo</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    © 2026 Todos los derechos reservados.<br>
+    Plataforma desarrollada por <span class="autor">Daniel Figueroa Chacama</span>.<br>
+    <span class="rol">Ingeniero en Informática &amp; Ciberseguridad</span>
+  </footer>
+</div>
+
+<!-- Modal cámara -->
+<div class="cam-modal" id="camModal">
+  <div class="cam-instr" id="camInstr">Encuadra el documento</div>
+  <div class="cam-container">
+    <video id="camVideo" autoplay playsinline muted class="cam-video"></video>
+    <div class="cam-overlay"><div class="cam-cutout cr80" id="camCutout"></div></div>
+  </div>
+  <div class="cam-controls">
+    <button class="cam-btn" type="button" onclick="cerrarCamara()" title="Cancelar">✕</button>
+    <button class="cam-btn capture" type="button" onclick="capturar()" title="Capturar"><div></div></button>
+    <button class="cam-btn" type="button" onclick="cambiarCamara()" title="Cambiar cámara">🔄</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  let tipo = 'dos';
+  let tam = 'oficio';
+  let fmt = 'jpg';           // 'jpg' | 'png' | 'pdf'
+  let frontBlob = null;
+  let backBlob = null;
+  let uniBlob = null;
+  let ultimoResultado = null; // { blob, ext, mime, filename }
+  let installBannerReady = false;
+
+  let stream = null;
+  let facingMode = 'environment';
+  let camTarget = null;
+  let fileTarget = null;
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._h);
+    showToast._h = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function setTipo(btn, t) {
+    tipo = t;
+    document.querySelectorAll('[data-tipo]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderSlots();
+    updateBtn();
+    setTimeout(() => irPaso(2), 200);
+  }
+
+  function setTam(btn, t) {
+    tam = t;
+    document.querySelectorAll('[data-tam]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    setTimeout(() => irPaso(3), 200);
+  }
+
+  function setFmt(btn, f) {
+    fmt = f;
+    document.querySelectorAll('[data-fmt]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    setTimeout(() => irPaso(4), 200);
+  }
+
+  // ===== Navegación por pasos =====
+  let pasoActual = 0;
+  const TOTAL_PASOS = 5;
+
+  function irPaso(n) {
+    pasoActual = n;
+    document.querySelectorAll('.step').forEach(s => {
+      s.classList.toggle('active', Number(s.dataset.step) === n);
+    });
+    // Barra de progreso: visible desde el paso 1
+    const prog = document.getElementById('progress');
+    if (n === 0) prog.style.display = 'none';
+    else {
+      prog.style.display = 'flex';
+      prog.querySelectorAll('.progress-dot').forEach(d => {
+        const dn = Number(d.dataset.dot);
+        d.classList.remove('done', 'current');
+        if (dn < n) d.classList.add('done');
+        else if (dn === n) d.classList.add('current');
+      });
+    }
+    // El banner de instalación solo tiene sentido en la portada
+    document.getElementById('installBanner').style.display = (n === 0 && installBannerReady) ? 'flex' : 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  window.irPaso = irPaso;
+
+  function renderSlots() {
+    const cont = document.getElementById('slotsCont');
+    if (tipo === 'una') {
+      cont.className = 'slots one';
+      cont.innerHTML = `
+        <div class="slot" id="slot-uni">
+          <div class="slot-label">Documento</div>
+          <div class="slot-placeholder" id="ph-uni">📄</div>
+          <img id="preview-uni" class="slot-preview" style="display:none;" alt="Documento">
+          <div class="slot-actions">
+            <button class="slot-btn primary" type="button" onclick="abrirCamara('uni')">📷 Cámara</button>
+            <button class="slot-btn" type="button" onclick="abrirArchivo('uni')">📁 Archivo</button>
+          </div>
+        </div>`;
+      uniBlob = null;
+      frontBlob = null;
+      backBlob = null;
+    } else {
+      cont.className = 'slots two';
+      cont.innerHTML = `
+        <div class="slot" id="slot-front">
+          <div class="slot-label">Parte Frontal</div>
+          <div class="slot-placeholder" id="ph-front">🪪</div>
+          <img id="preview-front" class="slot-preview" style="display:none;" alt="Frontal">
+          <div class="slot-actions">
+            <button class="slot-btn primary" type="button" onclick="abrirCamara('front')">📷 Cámara</button>
+            <button class="slot-btn" type="button" onclick="abrirArchivo('front')">📁 Archivo</button>
+          </div>
+        </div>
+        <div class="slot" id="slot-back">
+          <div class="slot-label">Parte Trasera</div>
+          <div class="slot-placeholder" id="ph-back">📝</div>
+          <img id="preview-back" class="slot-preview" style="display:none;" alt="Trasera">
+          <div class="slot-actions">
+            <button class="slot-btn primary" type="button" onclick="abrirCamara('back')">📷 Cámara</button>
+            <button class="slot-btn" type="button" onclick="abrirArchivo('back')">📁 Archivo</button>
+          </div>
+        </div>`;
+      uniBlob = null;
+    }
+  }
+
+  function updateBtn() {
+    const btn = document.getElementById('btnGenerar');
+    if (tipo === 'una') btn.disabled = !uniBlob;
+    else btn.disabled = !(frontBlob && backBlob);
+  }
+
+  function assignBlob(target, blob) {
+    if (target === 'front') frontBlob = blob;
+    else if (target === 'back') backBlob = blob;
+    else if (target === 'uni') uniBlob = blob;
+    updateBtn();
+  }
+
+  function showPreview(target, src) {
+    const img = document.getElementById('preview-' + target);
+    const ph = document.getElementById('ph-' + target);
+    const slot = document.getElementById('slot-' + target);
+    if (img) { img.src = src; img.style.display = 'block'; }
+    if (ph) ph.style.display = 'none';
+    if (slot) slot.classList.add('has-image');
+  }
+
+  function abrirArchivo(target) {
+    fileTarget = target;
+    const inp = document.getElementById('fileInput');
+    inp.value = '';
+    inp.click();
+  }
+
+  function fileSelected(input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    assignBlob(fileTarget, file);
+    const reader = new FileReader();
+    reader.onload = e => showPreview(fileTarget, e.target.result);
+    reader.readAsDataURL(file);
+  }
+
+  async function abrirCamara(target) {
+    camTarget = target;
+    const cutout = document.getElementById('camCutout');
+    const instr = document.getElementById('camInstr');
+    if (tipo === 'dos') {
+      cutout.className = 'cam-cutout cr80';
+      instr.textContent = target === 'front' ? 'Encuadra el FRENTE de la tarjeta' : 'Encuadra el REVERSO de la tarjeta';
+    } else {
+      cutout.className = 'cam-cutout portrait';
+      instr.textContent = 'Encuadra el documento en vertical';
+    }
+    document.getElementById('camModal').classList.add('show');
+    await iniciarStream();
+  }
+
+  async function iniciarStream() {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+      document.getElementById('camVideo').srcObject = stream;
+    } catch (e) {
+      console.error('Cámara:', e);
+      showToast('No se pudo acceder a la cámara');
+      cerrarCamara();
+    }
+  }
+
+  function cerrarCamara() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    document.getElementById('camModal').classList.remove('show');
+    document.getElementById('camVideo').srcObject = null;
+  }
+
+  async function cambiarCamara() {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    await iniciarStream();
+  }
+
+  function capturar() {
+    const video = document.getElementById('camVideo');
+    const container = video.parentElement;
+    const cutout = document.getElementById('camCutout');
+    if (!video || !stream) return;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) { showToast('Cámara no lista'); return; }
+
+    // Mapear el marco visible al espacio de píxeles del video (compensando object-fit: cover).
+    const cRect = container.getBoundingClientRect();
+    const scale = Math.max(cRect.width / vw, cRect.height / vh);
+    const offsetX = (vw * scale - cRect.width) / 2;
+    const offsetY = (vh * scale - cRect.height) / 2;
+    const gRect = cutout.getBoundingClientRect();
+    const gX = gRect.left - cRect.left;
+    const gY = gRect.top - cRect.top;
+    const cropX = (gX + offsetX) / scale;
+    const cropY = (gY + offsetY) / scale;
+    const cropW = gRect.width / scale;
+    const cropH = gRect.height / scale;
+
+    // Salida: la captura sobre bordo blanco 40px (para look de "escaneada").
+    let targetW, targetH;
+    if (tipo === 'dos') { targetW = 1000; targetH = Math.round(1000 / 1.586); }  // 630 (CR80)
+    else { targetW = 900; targetH = Math.round(900 / 0.707); }                   // 1273 (retrato A4-ish)
+    const pad = 40;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetW + pad * 2;
+    canvas.height = targetH + pad * 2;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, cropX, cropY, cropW, cropH, pad, pad, targetW, targetH);
+
+    canvas.toBlob(blob => {
+      if (!blob) { showToast('Error al capturar'); return; }
+      const url = URL.createObjectURL(blob);
+      assignBlob(camTarget, blob);
+      showPreview(camTarget, url);
+      cerrarCamara();
+      showToast('Imagen capturada');
+    }, 'image/jpeg', 0.92);
+  }
+
+  // ============= Generación de la hoja =============
+
+  function sheetSize() {
+    const w = 1200;
+    if (tam === 'oficio') return [w, Math.round(w * 13 / 8.5)];   // 1200 × 1835
+    return [w, Math.round(w * 11 / 8.5)];                          // 1200 × 1553 (carta)
+  }
+
+  function loadImage(blob) {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = () => rej(new Error('No se pudo cargar la imagen.'));
+      img.src = URL.createObjectURL(blob);
+    });
+  }
+
+  // Dibuja la hoja completa sobre un canvas y lo devuelve (sin exportar).
+  async function dibujarHoja() {
+    const [sheetW, sheetH] = sheetSize();
+    const canvas = document.createElement('canvas');
+    canvas.width = sheetW;
+    canvas.height = sheetH;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, sheetW, sheetH);
+
+    if (tipo === 'dos') {
+      // Misma matemática que NEXO: par centrado y corrido hacia arriba.
+      const [imgF, imgB] = await Promise.all([loadImage(frontBlob), loadImage(backBlob)]);
+      const cardW = Math.round(sheetW / 2);
+      const cardH = Math.round(cardW / 1.586);
+      const gap = 100;
+      const pairH = cardH * 2 + gap;
+      const shiftUp = 200;
+      const topY = Math.round((sheetH - pairH) / 2) - shiftUp;
+      const x = Math.round((sheetW - cardW) / 2);
+      ctx.drawImage(imgF, x, topY, cardW, cardH);
+      ctx.drawImage(imgB, x, topY + cardH + gap, cardW, cardH);
+    } else {
+      // Una cara: centrada preservando aspecto, máx 80 % ancho × 78 % alto.
+      const img = await loadImage(uniBlob);
+      const maxW = sheetW * 0.80;
+      const maxH = sheetH * 0.78;
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+      const w = Math.round(img.naturalWidth * scale);
+      const h = Math.round(img.naturalHeight * scale);
+      const x = Math.round((sheetW - w) / 2);
+      const y = Math.round((sheetH - h) / 2);
+      ctx.drawImage(img, x, y, w, h);
+    }
+    return canvas;
+  }
+
+  // Carga jsPDF una sola vez (desde CDN) — solo cuando el usuario elige PDF.
+  let jsPDFPromise = null;
+  function cargarJsPDF() {
+    if (jsPDFPromise) return jsPDFPromise;
+    jsPDFPromise = new Promise((res, rej) => {
+      if (window.jspdf && window.jspdf.jsPDF) return res(window.jspdf.jsPDF);
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+      s.onload = () => (window.jspdf && window.jspdf.jsPDF) ? res(window.jspdf.jsPDF) : rej(new Error('jsPDF no disponible'));
+      s.onerror = () => rej(new Error('No se pudo cargar la librería PDF'));
+      document.head.appendChild(s);
+    });
+    return jsPDFPromise;
+  }
+
+  // Exporta el canvas en el formato elegido: {blob, ext, mime, previewUrl}
+  async function exportar(canvas) {
+    if (fmt === 'png') {
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      return { blob, ext: 'png', mime: 'image/png', previewUrl: URL.createObjectURL(blob) };
+    }
+    if (fmt === 'pdf') {
+      const JsPDF = await cargarJsPDF();
+      // Hoja oficio: 216 × 330 mm | carta: 216 × 279 mm.
+      const [mmW, mmH] = tam === 'oficio' ? [216, 330] : [216, 279];
+      const doc = new JsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [mmW, mmH],
+        compress: true
+      });
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      doc.addImage(dataUrl, 'JPEG', 0, 0, mmW, mmH);
+      const blob = doc.output('blob');
+      return { blob, ext: 'pdf', mime: 'application/pdf', previewUrl: URL.createObjectURL(blob) };
+    }
+    // JPG por defecto
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+    return { blob, ext: 'jpg', mime: 'image/jpeg', previewUrl: URL.createObjectURL(blob) };
+  }
+
+  async function generar() {
+    const btn = document.getElementById('btnGenerar');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generando…';
+    try {
+      const canvas = await dibujarHoja();
+      const { blob, ext, mime, previewUrl } = await exportar(canvas);
+
+      const nomDefault = tipo === 'dos' ? `documento_ambas_caras_${tam}` : `documento_${tam}`;
+      // Si el usuario ya escribió un nombre, respetarlo; si no, sugerir uno por defecto.
+      const nombreInput = document.getElementById('nombreArchivo');
+      const nombreUsuario = (nombreInput.value || '').trim();
+      const baseName = nombreUsuario || nomDefault;
+      nombreInput.value = baseName;
+      const filename = `${baseName}.${ext}`;
+
+      ultimoResultado = { blob, ext, mime, filename, url: previewUrl, baseName };
+
+      // Para PDF mostramos el canvas como preview (los <img> no muestran PDFs).
+      const previewImg = fmt === 'pdf' ? canvas.toDataURL('image/jpeg', 0.85) : previewUrl;
+      document.getElementById('resultImg').src = previewImg;
+
+      const a = document.getElementById('downloadLink');
+      a.href = previewUrl;
+      a.download = filename;
+      a.textContent = `⬇ Guardar ${ext.toUpperCase()}`;
+      document.getElementById('nombreExt').textContent = '.' + ext;
+
+      irPaso(5);
+      showToast('Hoja generada');
+    } catch (e) {
+      console.error(e);
+      showToast('Error: ' + e.message);
+    }
+    btn.disabled = false;
+    btn.textContent = original;
+    updateBtn();
+  }
+  // Alias que ejecuta el mismo flujo (mantiene compatibilidad con el HTML).
+  const generarYAvanzar = generar;
+  window.generarYAvanzar = generarYAvanzar;
+
+  // Sanea el nombre escrito por el usuario (quita caracteres no válidos para
+  // nombres de archivo y colapsa espacios/guiones bajos).
+  function sanearNombre(txt) {
+    return (txt || '')
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '')  // caracteres prohibidos en FAT/NTFS/ext4
+      .replace(/\s+/g, '_')
+      .slice(0, 80);
+  }
+
+  // Se llama cada vez que el usuario escribe en el input del nombre.
+  function actualizarNombre() {
+    if (!ultimoResultado) return;
+    const raw = document.getElementById('nombreArchivo').value;
+    const base = sanearNombre(raw) || `documento_${tam}`;
+    const filename = `${base}.${ultimoResultado.ext}`;
+    ultimoResultado.baseName = base;
+    ultimoResultado.filename = filename;
+    const a = document.getElementById('downloadLink');
+    a.download = filename;
+  }
+  window.actualizarNombre = actualizarNombre;
+
+  // ===== Compartir por WhatsApp / Correo =====
+  // Fuerza la descarga del archivo (para que el usuario lo pueda adjuntar
+  // luego en la app que se abre). Necesario cuando el navegador no soporta
+  // navigator.share con archivos (típico en desktop y navegadores viejos).
+  function descargarArchivo() {
+    if (!ultimoResultado) return;
+    const a = document.createElement('a');
+    a.href = ultimoResultado.url;
+    a.download = ultimoResultado.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function compartirArchivo(texto, titulo) {
+    if (!ultimoResultado) return false;
+    if (!navigator.share) return false;
+    try {
+      const file = new File([ultimoResultado.blob], ultimoResultado.filename, { type: ultimoResultado.mime });
+      // Algunos navegadores soportan share() pero no share({files}). Testeamos:
+      if (navigator.canShare && !navigator.canShare({ files: [file] })) return false;
+      await navigator.share({ files: [file], title: titulo, text: texto });
+      return true;
+    } catch (e) {
+      // El usuario canceló el picker o el navegador falló → tratamos como no soportado.
+      if (e.name === 'AbortError') return true;   // usuario canceló, no hace fallback
+      return false;
+    }
+  }
+
+  async function enviarWhatsApp() {
+    if (!ultimoResultado) { showToast('Genera la hoja primero'); return; }
+    const texto = `Documento escaneado: ${ultimoResultado.filename} 📄`;
+    const ok = await compartirArchivo(texto, 'Documento escaneado');
+    if (ok) return;
+    // Fallback: descargamos el archivo y abrimos WhatsApp (soportando móviles y PC)
+    descargarArchivo();
+    showToast('Archivo descargado — adjúntalo en el chat de WhatsApp');
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+    window.open(waUrl, '_blank', 'noopener');
+  }
+
+  async function enviarCorreo() {
+    if (!ultimoResultado) { showToast('Genera la hoja primero'); return; }
+    const texto = 'Adjunto el documento escaneado.';
+    const ok = await compartirArchivo(texto, 'Documento escaneado');
+    if (ok) return;
+    // Fallback: descargamos + abrimos el cliente de correo con asunto y cuerpo listos.
+    descargarArchivo();
+    showToast('Archivo descargado — adjúntalo al correo');
+    const subject = encodeURIComponent('Documento escaneado');
+    const body = encodeURIComponent('Adjunto el documento escaneado (' + ultimoResultado.filename + ').');
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  }
+  window.enviarWhatsApp = enviarWhatsApp;
+  window.enviarCorreo = enviarCorreo;
+
+  function reiniciar() {
+    frontBlob = null; backBlob = null; uniBlob = null;
+    ultimoResultado = null;
+    // Deseleccionar todas las opciones para que el usuario empiece limpio.
+    document.querySelectorAll('[data-tipo], [data-tam], [data-fmt]').forEach(b => b.classList.remove('active'));
+    tipo = 'dos'; tam = 'oficio'; fmt = 'jpg';
+    const nameInput = document.getElementById('nombreArchivo');
+    if (nameInput) nameInput.value = '';
+    renderSlots();
+    updateBtn();
+    irPaso(0);
+  }
+
+  // Render inicial
+  renderSlots();
+
+  // ============= PWA: instalación =============
+
+  // 1. Registrar el service worker (necesario para el prompt de instalación)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err =>
+        console.warn('SW no registrado:', err.message)
+      );
+    });
+  }
+
+  // 2. Chrome/Edge/Android — captura el evento y muestra nuestro banner
+  let deferredInstall = null;
+  const banner = document.getElementById('installBanner');
+  const btnInstall = document.getElementById('btnInstall');
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstall = e;
+    if (sessionStorage.getItem('installDismissed') !== '1' &&
+        !window.matchMedia('(display-mode: standalone)').matches) {
+      installBannerReady = true;
+      if (pasoActual === 0) banner.classList.add('show');
+    }
+  });
+
+  btnInstall.addEventListener('click', async () => {
+    if (!deferredInstall) return;
+    banner.classList.remove('show');
+    deferredInstall.prompt();
+    const { outcome } = await deferredInstall.userChoice;
+    deferredInstall = null;
+    if (outcome === 'accepted') showToast('¡App instalada!');
+  });
+
+  window.ocultarInstall = () => {
+    banner.classList.remove('show');
+    sessionStorage.setItem('installDismissed', '1');
+  };
+
+  // 3. iOS (Safari) — no dispara beforeinstallprompt, mostramos instrucciones
+  const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const yaInstalada = window.navigator.standalone === true ||
+                      window.matchMedia('(display-mode: standalone)').matches;
+  if (esIOS && !yaInstalada && sessionStorage.getItem('iosHintDismissed') !== '1') {
+    document.getElementById('iosHint').classList.add('show');
+  }
+  window.ocultarIOS = () => {
+    document.getElementById('iosHint').classList.remove('show');
+    sessionStorage.setItem('iosHintDismissed', '1');
+  };
+
+  window.addEventListener('appinstalled', () => {
+    banner.classList.remove('show');
+    document.getElementById('iosHint').classList.remove('show');
+    showToast('App instalada');
+  });
+</script>
+</body>
+</html>

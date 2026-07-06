@@ -1,0 +1,39 @@
+{
+  "name": "Escáner de Documentos",
+  "short_name": "Escáner",
+  "description": "Combina frente y reverso o centra un documento en una hoja lista para imprimir.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f7f9",
+  "theme_color": "#0A0A0A",
+  "lang": "es-CL",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "favicon/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "favicon/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
