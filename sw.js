@@ -1,17 +1,17 @@
 /* Service Worker — Escáner de Documentos
    Estrategia: "network-first con caché de reserva". Sirve rápido cuando hay
    internet y sigue funcionando (offline) con la última versión cacheada. */
-const CACHE = 'escaner-v1';
+const CACHE = 'escaner-v2';
 const ASSETS = [
   './',
   'index.html',
   'manifest.json',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/icon-192-maskable.png',
-  'icons/icon-512-maskable.png',
-  'icons/apple-touch-icon.png',
-  'icons/favicon-96.png'
+  'favicon/web-app-manifest-192x192.png',
+  'favicon/web-app-manifest-512x512.png',
+  'favicon/apple-touch-icon.png',
+  'favicon/favicon-96x96.png',
+  'favicon/favicon.svg',
+  'favicon/favicon.ico'
 ];
 
 self.addEventListener('install', event => {

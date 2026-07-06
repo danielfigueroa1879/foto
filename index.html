@@ -12,9 +12,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Escáner">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="96x96" href="icons/favicon-96.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="favicon/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="96x96" href="favicon/favicon-96x96.png">
+<link rel="icon" type="image/svg+xml" href="favicon/favicon.svg">
+<link rel="shortcut icon" href="favicon/favicon.ico">
 <style>
   :root {
     --bg: #f7f7f9;
@@ -103,6 +104,46 @@
   }
   .footer .autor { color: var(--ink-soft); font-weight: 600; }
   .footer .rol { color: var(--ink-mute); font-size: 11px; }
+
+  /* Nombre del archivo (paso resultado) */
+  .name-row {
+    display: flex; align-items: stretch;
+    background: #fafafb;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 0;
+    margin: 14px 0 4px;
+    overflow: hidden;
+  }
+  .name-row label {
+    display: flex; align-items: center;
+    padding: 12px 12px 12px 14px;
+    font-size: 12px; font-weight: 700;
+    color: var(--ink-mute);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .name-row input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font: 600 15px inherit;
+    color: var(--ink);
+    padding: 12px 8px;
+    min-width: 0;
+    outline: none;
+  }
+  .name-row .ext {
+    display: flex; align-items: center;
+    padding: 0 14px;
+    font: 600 13px inherit;
+    color: var(--ink-mute);
+    background: #eef0f3;
+  }
+  .name-hint {
+    font-size: 11px; color: var(--ink-mute);
+    margin: 0 4px 12px; line-height: 1.35;
+  }
 
   .card {
     background: var(--surface);
@@ -564,6 +605,15 @@
     </div>
     <div class="card">
       <img id="resultImg" alt="Hoja generada" style="max-width:100%; max-height:60vh; border:1px solid var(--line); border-radius:10px; display:block; margin:0 auto; background:#fff;">
+
+      <div class="name-row">
+        <label for="nombreArchivo">Nombre</label>
+        <input id="nombreArchivo" type="text" placeholder="documento" autocomplete="off"
+               oninput="actualizarNombre()">
+        <span class="ext" id="nombreExt">.jpg</span>
+      </div>
+      <p class="name-hint">Este será el nombre del archivo al guardarlo o enviarlo.</p>
+
       <div class="result-actions">
         <a id="downloadLink" download="documento.jpg" href="#">⬇ Guardar</a>
         <button type="button" class="wa" id="btnWhatsApp" onclick="enviarWhatsApp()">💬 WhatsApp</button>
@@ -940,9 +990,15 @@
       const canvas = await dibujarHoja();
       const { blob, ext, mime, previewUrl } = await exportar(canvas);
 
-      const nom = tipo === 'dos' ? 'documento_ambas_caras' : 'documento';
-      const filename = `${nom}_${tam}.${ext}`;
-      ultimoResultado = { blob, ext, mime, filename, url: previewUrl };
+      const nomDefault = tipo === 'dos' ? `documento_ambas_caras_${tam}` : `documento_${tam}`;
+      // Si el usuario ya escribió un nombre, respetarlo; si no, sugerir uno por defecto.
+      const nombreInput = document.getElementById('nombreArchivo');
+      const nombreUsuario = (nombreInput.value || '').trim();
+      const baseName = nombreUsuario || nomDefault;
+      nombreInput.value = baseName;
+      const filename = `${baseName}.${ext}`;
+
+      ultimoResultado = { blob, ext, mime, filename, url: previewUrl, baseName };
 
       // Para PDF mostramos el canvas como preview (los <img> no muestran PDFs).
       const previewImg = fmt === 'pdf' ? canvas.toDataURL('image/jpeg', 0.85) : previewUrl;
@@ -952,6 +1008,7 @@
       a.href = previewUrl;
       a.download = filename;
       a.textContent = `⬇ Guardar ${ext.toUpperCase()}`;
+      document.getElementById('nombreExt').textContent = '.' + ext;
 
       irPaso(5);
       showToast('Hoja generada');
@@ -966,6 +1023,29 @@
   // Alias que ejecuta el mismo flujo (mantiene compatibilidad con el HTML).
   const generarYAvanzar = generar;
   window.generarYAvanzar = generarYAvanzar;
+
+  // Sanea el nombre escrito por el usuario (quita caracteres no válidos para
+  // nombres de archivo y colapsa espacios/guiones bajos).
+  function sanearNombre(txt) {
+    return (txt || '')
+      .trim()
+      .replace(/[\\/:*?"<>|]/g, '')  // caracteres prohibidos en FAT/NTFS/ext4
+      .replace(/\s+/g, '_')
+      .slice(0, 80);
+  }
+
+  // Se llama cada vez que el usuario escribe en el input del nombre.
+  function actualizarNombre() {
+    if (!ultimoResultado) return;
+    const raw = document.getElementById('nombreArchivo').value;
+    const base = sanearNombre(raw) || `documento_${tam}`;
+    const filename = `${base}.${ultimoResultado.ext}`;
+    ultimoResultado.baseName = base;
+    ultimoResultado.filename = filename;
+    const a = document.getElementById('downloadLink');
+    a.download = filename;
+  }
+  window.actualizarNombre = actualizarNombre;
 
   // ===== Compartir por WhatsApp / Correo =====
   // Fuerza la descarga del archivo (para que el usuario lo pueda adjuntar
@@ -1029,6 +1109,8 @@
     // Deseleccionar todas las opciones para que el usuario empiece limpio.
     document.querySelectorAll('[data-tipo], [data-tam], [data-fmt]').forEach(b => b.classList.remove('active'));
     tipo = 'dos'; tam = 'oficio'; fmt = 'jpg';
+    const nameInput = document.getElementById('nombreArchivo');
+    if (nameInput) nameInput.value = '';
     renderSlots();
     updateBtn();
     irPaso(0);
