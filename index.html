@@ -400,6 +400,73 @@
   .cam-btn.capture > div {
     width: 26px; height: 26px; border-radius: 50%; background: var(--brand);
   }
+  .cam-btn.confirm > div {
+    width: 26px; height: 26px; border-radius: 6px; background: #34C759;
+  }
+
+  /* ===== Recorte de imagen (galería) ===== */
+  .crop-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #000;
+    z-index: 110;
+    flex-direction: column;
+  }
+  .crop-modal.show { display: flex; }
+  .crop-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .crop-image {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  .crop-selection {
+    position: absolute;
+    border: 2px solid #34C759;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+    box-sizing: border-box;
+    cursor: move;
+  }
+  .crop-selection::before {
+    content: '';
+    position: absolute;
+    top: 33.33%; bottom: 33.33%;
+    left: 0; right: 0;
+    border-top: 1px dashed rgba(255,255,255,0.4);
+    border-bottom: 1px dashed rgba(255,255,255,0.4);
+    pointer-events: none;
+  }
+  .crop-selection::after {
+    content: '';
+    position: absolute;
+    left: 33.33%; right: 33.33%;
+    top: 0; bottom: 0;
+    border-left: 1px dashed rgba(255,255,255,0.4);
+    border-right: 1px dashed rgba(255,255,255,0.4);
+    pointer-events: none;
+  }
+  .crop-handle {
+    position: absolute;
+    width: 28px; height: 28px;
+    background: #34C759;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    touch-action: none;
+  }
+  .crop-handle.tl { left: 0;    top: 0;    cursor: nwse-resize; }
+  .crop-handle.tr { left: 100%; top: 0;    cursor: nesw-resize; }
+  .crop-handle.bl { left: 0;    top: 100%; cursor: nesw-resize; }
+  .crop-handle.br { left: 100%; top: 100%; cursor: nwse-resize; }
 
   /* Botón instalar app (aparece solo cuando el navegador ofrece instalación) */
   .install-banner {
@@ -665,6 +732,25 @@
   </div>
 </div>
 
+<!-- Modal recorte (galería) -->
+<div class="crop-modal" id="cropModal">
+  <div class="cam-instr">Ajusta el recorte y confirma</div>
+  <div class="crop-container" id="cropContainer">
+    <img id="cropImage" class="crop-image" alt="">
+    <div class="crop-selection" id="cropSelection" style="display:none;">
+      <div class="crop-handle tl" data-h="tl"></div>
+      <div class="crop-handle tr" data-h="tr"></div>
+      <div class="crop-handle bl" data-h="bl"></div>
+      <div class="crop-handle br" data-h="br"></div>
+    </div>
+  </div>
+  <div class="cam-controls">
+    <button class="cam-btn" type="button" onclick="cancelarRecorte()" title="Cancelar">✕</button>
+    <button class="cam-btn capture confirm" type="button" onclick="confirmarRecorte()" title="Confirmar recorte"><div></div></button>
+    <button class="cam-btn" type="button" onclick="reiniciarRecorte()" title="Reiniciar recorte">↺</button>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -815,11 +901,196 @@
   function fileSelected(input) {
     if (!input.files.length) return;
     const file = input.files[0];
-    assignBlob(fileTarget, file);
-    const reader = new FileReader();
-    reader.onload = e => showPreview(fileTarget, e.target.result);
-    reader.readAsDataURL(file);
+    // Abre el editor de recorte antes de asignar la imagen al slot.
+    abrirRecorte(fileTarget, file);
   }
+
+  // ============= Recorte de imágenes de galería =============
+  let cropTarget = null;
+  let cropSourceBlob = null;
+  let cropRect = null;      // {x, y, w, h} en coordenadas del contenedor
+  let cropDrag = null;      // { mode, startX, startY, orig, containerRect }
+
+  function abrirRecorte(target, blob) {
+    cropTarget = target;
+    cropSourceBlob = blob;
+    const modal = document.getElementById('cropModal');
+    const img = document.getElementById('cropImage');
+    const sel = document.getElementById('cropSelection');
+    sel.style.display = 'none';
+    modal.classList.add('show');
+    // Limpia el src anterior (si existe) para forzar onload en imágenes cacheadas.
+    const prev = img.src;
+    img.onload = () => {
+      requestAnimationFrame(initCropSelection);
+      if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+    };
+    img.src = URL.createObjectURL(blob);
+  }
+  window.abrirRecorte = abrirRecorte;
+
+  function getImageDisplayRect() {
+    const container = document.getElementById('cropContainer');
+    const img = document.getElementById('cropImage');
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (!nw || !nh || !cw || !ch) return { x: 0, y: 0, w: cw, h: ch, scale: 1 };
+    const scale = Math.min(cw / nw, ch / nh);
+    const w = nw * scale;
+    const h = nh * scale;
+    return { x: (cw - w) / 2, y: (ch - h) / 2, w, h, scale };
+  }
+
+  function initCropSelection() {
+    const disp = getImageDisplayRect();
+    if (!disp.w || !disp.h) return;
+    // Selección inicial: 90 % del área visible de la imagen.
+    const w = disp.w * 0.9;
+    const h = disp.h * 0.9;
+    cropRect = {
+      x: disp.x + (disp.w - w) / 2,
+      y: disp.y + (disp.h - h) / 2,
+      w, h
+    };
+    const sel = document.getElementById('cropSelection');
+    sel.style.display = 'block';
+    drawCropSelection();
+  }
+
+  function drawCropSelection() {
+    const sel = document.getElementById('cropSelection');
+    sel.style.left = cropRect.x + 'px';
+    sel.style.top = cropRect.y + 'px';
+    sel.style.width = cropRect.w + 'px';
+    sel.style.height = cropRect.h + 'px';
+  }
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function onCropPointerDown(e) {
+    if (!cropRect) return;
+    const container = document.getElementById('cropContainer');
+    const rect = container.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const handle = e.target && e.target.dataset ? e.target.dataset.h : null;
+    if (handle) {
+      cropDrag = { mode: handle, startX: px, startY: py, orig: { ...cropRect }, containerRect: rect };
+    } else if (px >= cropRect.x && px <= cropRect.x + cropRect.w &&
+               py >= cropRect.y && py <= cropRect.y + cropRect.h) {
+      cropDrag = { mode: 'move', startX: px, startY: py, orig: { ...cropRect }, containerRect: rect };
+    }
+    if (cropDrag) {
+      e.preventDefault();
+      if (container.setPointerCapture && e.pointerId != null) {
+        try { container.setPointerCapture(e.pointerId); } catch (_) {}
+      }
+    }
+  }
+
+  function onCropPointerMove(e) {
+    if (!cropDrag) return;
+    const rect = cropDrag.containerRect;
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const dx = px - cropDrag.startX;
+    const dy = py - cropDrag.startY;
+    const disp = getImageDisplayRect();
+    const dispR = disp.x + disp.w;
+    const dispB = disp.y + disp.h;
+    const min = 40;
+    const o = cropDrag.orig;
+    let x, y, w, h;
+
+    if (cropDrag.mode === 'move') {
+      x = clamp(o.x + dx, disp.x, dispR - o.w);
+      y = clamp(o.y + dy, disp.y, dispB - o.h);
+      w = o.w; h = o.h;
+    } else {
+      // Redimensiona la esquina arrastrada, dejando fija la opuesta.
+      let nx1 = o.x, ny1 = o.y, nx2 = o.x + o.w, ny2 = o.y + o.h;
+      if (cropDrag.mode.includes('l')) nx1 = clamp(o.x + dx, disp.x, nx2 - min);
+      if (cropDrag.mode.includes('r')) nx2 = clamp(o.x + o.w + dx, nx1 + min, dispR);
+      if (cropDrag.mode.includes('t')) ny1 = clamp(o.y + dy, disp.y, ny2 - min);
+      if (cropDrag.mode.includes('b')) ny2 = clamp(o.y + o.h + dy, ny1 + min, dispB);
+      x = nx1; y = ny1; w = nx2 - nx1; h = ny2 - ny1;
+    }
+    cropRect = { x, y, w, h };
+    drawCropSelection();
+  }
+
+  function onCropPointerUp() {
+    cropDrag = null;
+  }
+
+  function reiniciarRecorte() {
+    initCropSelection();
+  }
+  window.reiniciarRecorte = reiniciarRecorte;
+
+  function cancelarRecorte() {
+    const inp = document.getElementById('fileInput');
+    if (inp) inp.value = '';
+    cerrarRecorteInterno();
+  }
+  window.cancelarRecorte = cancelarRecorte;
+
+  function cerrarRecorteInterno() {
+    document.getElementById('cropModal').classList.remove('show');
+    const img = document.getElementById('cropImage');
+    if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+    img.removeAttribute('src');
+    cropSourceBlob = null;
+    cropTarget = null;
+    cropRect = null;
+    cropDrag = null;
+  }
+
+  async function confirmarRecorte() {
+    if (!cropSourceBlob || !cropRect) return;
+    const target = cropTarget;
+    const disp = getImageDisplayRect();
+    if (!disp.scale) return;
+    // Convierte la selección (px del contenedor) al espacio de píxeles del original.
+    const sx = Math.max(0, (cropRect.x - disp.x) / disp.scale);
+    const sy = Math.max(0, (cropRect.y - disp.y) / disp.scale);
+    const sw = cropRect.w / disp.scale;
+    const sh = cropRect.h / disp.scale;
+    const src = await loadImage(cropSourceBlob);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(sw));
+    canvas.height = Math.max(1, Math.round(sh));
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(src, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
+    if (!blob) { showToast('Error al recortar'); return; }
+    const url = URL.createObjectURL(blob);
+    assignBlob(target, blob);
+    showPreview(target, url);
+    const inp = document.getElementById('fileInput');
+    if (inp) inp.value = '';
+    cerrarRecorteInterno();
+    showToast('Imagen recortada');
+  }
+  window.confirmarRecorte = confirmarRecorte;
+
+  // Registra los handlers de puntero para el recorte.
+  (function attachCropHandlers() {
+    const container = document.getElementById('cropContainer');
+    if (!container) return;
+    container.addEventListener('pointerdown', onCropPointerDown);
+    container.addEventListener('pointermove', onCropPointerMove);
+    container.addEventListener('pointerup', onCropPointerUp);
+    container.addEventListener('pointercancel', onCropPointerUp);
+    // Recalcular selección si cambia el tamaño de la ventana estando abierto.
+    window.addEventListener('resize', () => {
+      if (document.getElementById('cropModal').classList.contains('show') && cropRect) {
+        initCropSelection();
+      }
+    });
+  })();
 
   async function abrirCamara(target) {
     camTarget = target;
@@ -947,10 +1218,12 @@
       ctx.drawImage(imgF, x, topY, cardW, cardH);
       ctx.drawImage(imgB, x, topY + cardH + gap, cardW, cardH);
     } else {
-      // Una cara: centrada preservando aspecto, máx 80 % ancho × 78 % alto.
+      // Una cara: centrada preservando aspecto.
+      // - PDF: la imagen llena el papel completo (borde a borde).
+      // - JPG/PNG: se deja un margen visual para el look de "hoja escaneada".
       const img = await loadImage(uniBlob);
-      const maxW = sheetW * 0.80;
-      const maxH = sheetH * 0.78;
+      const maxW = fmt === 'pdf' ? sheetW : sheetW * 0.80;
+      const maxH = fmt === 'pdf' ? sheetH : sheetH * 0.78;
       const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
       const w = Math.round(img.naturalWidth * scale);
       const h = Math.round(img.naturalHeight * scale);
