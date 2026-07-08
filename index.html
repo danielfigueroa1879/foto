@@ -1098,9 +1098,14 @@
     const instr = document.getElementById('camInstr');
     if (tipo === 'dos') {
       cutout.className = 'cam-cutout cr80';
+      cutout.style.aspectRatio = '';
       instr.textContent = target === 'front' ? 'Encuadra el FRENTE de la tarjeta' : 'Encuadra el REVERSO de la tarjeta';
     } else {
+      // El marco toma la MISMA proporción de la hoja elegida, así la captura
+      // llena el papel sin espacios en blanco.
+      const [sheetW, sheetH] = sheetSize();
       cutout.className = 'cam-cutout portrait';
+      cutout.style.aspectRatio = (sheetW / sheetH).toFixed(4);
       instr.textContent = 'Encuadra el documento en vertical';
     }
     document.getElementById('camModal').classList.add('show');
@@ -1154,11 +1159,18 @@
     const cropW = gRect.width / scale;
     const cropH = gRect.height / scale;
 
-    // Salida: la captura sobre bordo blanco 40px (para look de "escaneada").
-    let targetW, targetH;
-    if (tipo === 'dos') { targetW = 1000; targetH = Math.round(1000 / 1.586); }  // 630 (CR80)
-    else { targetW = 900; targetH = Math.round(900 / 0.707); }                   // 1273 (retrato A4-ish)
-    const pad = 40;
+    // Salida: en modo tarjeta se conserva el borde blanco (look "escaneada");
+    // en modo una-cara el aspecto sale idéntico a la hoja para llenarla al 100 %.
+    let targetW, targetH, pad;
+    if (tipo === 'dos') {
+      targetW = 1000; targetH = Math.round(1000 / 1.586);   // 630 (CR80)
+      pad = 40;
+    } else {
+      const [sheetW, sheetH] = sheetSize();
+      targetW = 900;
+      targetH = Math.round(900 * sheetH / sheetW);           // mismo aspecto de la hoja
+      pad = 0;                                               // sin borde: la captura llena el papel
+    }
 
     const canvas = document.createElement('canvas');
     canvas.width = targetW + pad * 2;
@@ -1218,17 +1230,16 @@
       ctx.drawImage(imgF, x, topY, cardW, cardH);
       ctx.drawImage(imgB, x, topY + cardH + gap, cardW, cardH);
     } else {
-      // Una cara: centrada preservando aspecto.
-      // - PDF: la imagen llena el papel completo (borde a borde).
-      // - JPG/PNG: se deja un margen visual para el look de "hoja escaneada".
+      // Una cara: la imagen llena la hoja al 100 % (modo "cover") — sin franjas
+      // blancas. Si el aspecto de la imagen no coincide con el papel, los bordes
+      // sobrantes se recortan. El usuario puede recortar antes desde galería para
+      // controlar qué queda dentro.
       const img = await loadImage(uniBlob);
-      const maxW = fmt === 'pdf' ? sheetW : sheetW * 0.80;
-      const maxH = fmt === 'pdf' ? sheetH : sheetH * 0.78;
-      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
-      const w = Math.round(img.naturalWidth * scale);
-      const h = Math.round(img.naturalHeight * scale);
-      const x = Math.round((sheetW - w) / 2);
-      const y = Math.round((sheetH - h) / 2);
+      const scale = Math.max(sheetW / img.naturalWidth, sheetH / img.naturalHeight);
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+      const x = (sheetW - w) / 2;
+      const y = (sheetH - h) / 2;
       ctx.drawImage(img, x, y, w, h);
     }
     return canvas;
