@@ -1,7 +1,11 @@
 /* Service Worker — Escáner de Documentos
    Estrategia: "network-first con caché de reserva". Sirve rápido cuando hay
-   internet y sigue funcionando (offline) con la última versión cacheada. */
-const CACHE = 'escaner-v2';
+   internet y sigue funcionando (offline) con la última versión cacheada.
+
+   Al subir cambios: incrementar la versión del CACHE — así todos los
+   dispositivos detectan el nuevo SW, borran el caché viejo y muestran la
+   última versión sin necesidad de vaciar caché a mano. */
+const CACHE = 'escaner-v5';
 const ASSETS = [
   './',
   'index.html',
@@ -28,6 +32,14 @@ self.addEventListener('activate', event => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
+});
+
+// La página puede pedir al SW que se active inmediatamente al detectar una
+// actualización, sin esperar a que se cierren todas las pestañas.
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', event => {
