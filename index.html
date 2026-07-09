@@ -30,27 +30,49 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0A0A0A" id="metaTheme">
 
-<!-- Modo oscuro automático: se aplica ANTES de renderizar para evitar el
-     flash de tema claro. Regla: dark si (system=dark) O (hora 19-7). -->
+<!-- Tema día/noche:
+     · Elección manual (guardada en localStorage) tiene prioridad total.
+     · Si no hay elección manual → automático por hora local (19-7) o
+       preferencia del sistema (prefers-color-scheme).
+     · Se aplica ANTES de renderizar para evitar el flash de tema claro. -->
 <script>
   (function () {
     function esNoche() {
       const h = new Date().getHours();
       return h >= 19 || h < 7;
     }
-    function aplicarTema() {
+    function leerManual() {
+      try { return localStorage.getItem('scanerTheme'); } catch (_) { return null; }
+    }
+    function calcularTema() {
+      const manual = leerManual();
+      if (manual === 'dark' || manual === 'light') return manual;
       const prefiereOscuro = window.matchMedia &&
         window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const oscuro = prefiereOscuro || esNoche();
+      return (prefiereOscuro || esNoche()) ? 'dark' : 'light';
+    }
+    function aplicarTema() {
+      const tema = calcularTema();
+      const oscuro = tema === 'dark';
       const body = document.body || document.documentElement;
       if (body.classList) body.classList.toggle('dark', oscuro);
       const meta = document.getElementById('metaTheme');
       if (meta) meta.setAttribute('content', oscuro ? '#0e0e13' : '#f4f4f7');
     }
+    // Función global para el botón de toggle.
+    window.cambiarTema = function () {
+      const nuevo = document.body.classList.contains('dark') ? 'light' : 'dark';
+      try { localStorage.setItem('scanerTheme', nuevo); } catch (_) {}
+      aplicarTema();
+      if (typeof window.showToast === 'function') {
+        window.showToast(nuevo === 'dark' ? '🌙 Modo noche' : '☀️ Modo día');
+      }
+    };
     // Se ejecuta apenas se pueda (antes del render), luego cuando el body existe.
     document.addEventListener('DOMContentLoaded', aplicarTema);
     if (document.body) aplicarTema();
-    // Re-evalúa si el sistema cambia el esquema o cada 10 min por el reloj.
+    // Re-evalúa si el sistema cambia el esquema o cada 10 min por el reloj
+    // — pero solo cuando NO hay elección manual del usuario.
     if (window.matchMedia) {
       window.matchMedia('(prefers-color-scheme: dark)')
         .addEventListener('change', aplicarTema);
@@ -874,6 +896,154 @@
     gap: 12px;
   }
 
+  /* Cabecera con toggle de tema al lado del título */
+  .header-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .header-row .header-txt { flex: 1; min-width: 0; }
+  .header-row h1 { margin: 4px 0 4px; }
+  .header-row .subtitle { margin: 0; }
+  .theme-toggle {
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    width: 44px; height: 44px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+    padding: 0;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    box-shadow: var(--shadow-sm);
+  }
+  .theme-toggle:hover { border-color: var(--ink-soft); transform: translateY(-1px); }
+  .theme-toggle svg { width: 20px; height: 20px; }
+  .theme-toggle .icon-sun { display: none; }
+  body.dark .theme-toggle .icon-sun { display: block; }
+  body.dark .theme-toggle .icon-moon { display: none; }
+
+  /* Sección "Documentos recientes" — FUERA del hero, en el área clara */
+  .recent-section {
+    margin: 22px 0 8px;
+    animation: fadeIn 0.3s ease;
+  }
+  .recent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px 10px;
+  }
+  .recent-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .recent-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 16px;
+    background: var(--ink);
+    border-radius: 2px;
+  }
+  .recent-see-all {
+    background: none;
+    border: none;
+    color: var(--ink-soft);
+    font: 700 12px inherit;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .recent-see-all:hover { color: var(--ink); background: var(--surface-2); }
+
+  .recent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .recent-item {
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 12px 10px 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: var(--shadow-sm);
+  }
+  .recent-item:hover {
+    border-color: var(--line-strong);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  .recent-item:active { transform: translateY(0); }
+  .recent-thumb {
+    width: 48px; height: 62px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .recent-info { flex: 1; min-width: 0; }
+  .recent-name {
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+  .recent-meta {
+    font-size: 11.5px;
+    color: var(--ink-mute);
+    margin-top: 3px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .recent-badge {
+    display: inline-block;
+    background: var(--surface-2);
+    color: var(--ink-soft);
+    font-weight: 700;
+    font-size: 10.5px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    letter-spacing: 0.03em;
+    border: 1px solid var(--line);
+  }
+  .recent-arrow {
+    font-size: 22px;
+    color: var(--ink-mute);
+    opacity: 0.55;
+    flex-shrink: 0;
+    font-weight: 300;
+    line-height: 1;
+  }
+  body.dark .recent-item { background: var(--surface); border-color: var(--line); }
+  body.dark .recent-thumb { background: var(--surface-2); }
+  body.dark .recent-badge { background: var(--surface-2); }
+  body.dark .recent-title::before { background: var(--ink); }
+
   /* ================================================================
      MODO OSCURO — overrides para elementos con colores hard-codeados
      ================================================================
@@ -964,8 +1134,28 @@
 <body>
 
 <div class="container">
-  <h1>Escáner de Documentos</h1>
-  <p class="subtitle">Combina frente y reverso, o centra un documento en una hoja lista para imprimir.</p>
+  <div class="header-row">
+    <div class="header-txt">
+      <h1>Escáner de Documentos</h1>
+      <p class="subtitle">Combina frente y reverso, o centra un documento en una hoja lista para imprimir.</p>
+    </div>
+    <button class="theme-toggle" type="button" onclick="cambiarTema()" aria-label="Cambiar tema día/noche" title="Cambiar tema">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20 15.5A9 9 0 0 1 8.5 4a1 1 0 0 0-1.4-1.2A11 11 0 1 0 21.2 16.9a1 1 0 0 0-1.2-1.4z"/>
+      </svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"/>
+        <line x1="12" y1="2" x2="12" y2="5"/>
+        <line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
+        <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+        <line x1="2" y1="12" x2="5" y2="12"/>
+        <line x1="19" y1="12" x2="22" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
+        <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+      </svg>
+    </button>
+  </div>
 
   <!-- Banner de instalación (Chrome/Android/Edge) -->
   <div class="install-banner" id="installBanner">
@@ -1001,11 +1191,18 @@
       <h2>Escanea tu documento</h2>
       <p>Combina las dos caras de una cédula o licencia, o centra un documento en una hoja lista para imprimir o enviar.</p>
       <button type="button" class="hero-btn" onclick="irPaso(1)">📷 Comenzar</button>
-      <div>
-        <button type="button" class="hero-btn-sec" onclick="abrirHistorial()" id="btnHist" style="display:none;">
-          📁 Ver historial (<span id="histCount">0</span>)
+    </div>
+
+    <!-- Documentos recientes: FUERA del hero, en el área clara del container.
+         Solo aparece si hay documentos guardados. -->
+    <div class="recent-section" id="recentSection" style="display:none;">
+      <div class="recent-header">
+        <div class="recent-title">Documentos recientes</div>
+        <button type="button" class="recent-see-all" onclick="abrirHistorial()">
+          Ver los <span id="histCount">0</span> →
         </button>
       </div>
+      <div class="recent-list" id="recentList"></div>
     </div>
   </section>
 
@@ -2099,15 +2296,44 @@
 
   async function actualizarBadgeHistorial() {
     const items = await listarHistorial();
-    const btn = document.getElementById('btnHist');
     const cnt = document.getElementById('histCount');
-    if (!btn || !cnt) return;
-    if (items.length > 0) {
-      btn.style.display = 'inline-flex';
-      cnt.textContent = items.length;
-    } else {
-      btn.style.display = 'none';
+    if (cnt) cnt.textContent = items.length;
+    // Libera object URLs previos del listado de recientes.
+    document.querySelectorAll('#recentList .recent-thumb').forEach(img => {
+      if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+    });
+    const section = document.getElementById('recentSection');
+    const list = document.getElementById('recentList');
+    if (!section || !list) return;
+    if (!items.length) {
+      section.style.display = 'none';
+      list.innerHTML = '';
+      return;
     }
+    section.style.display = 'block';
+    // Solo los 3 más recientes en la portada.
+    const recientes = items.slice(0, 3);
+    list.innerHTML = '';
+    recientes.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'recent-item';
+      div.onclick = () => abrirHistorial();
+      const thumbUrl = URL.createObjectURL(item.thumbBlob || item.blob);
+      const when = tiempoRelativo(item.fecha);
+      const ext = (item.ext || 'jpg').toUpperCase();
+      const size = formatBytes(item.blob.size);
+      div.innerHTML = `
+        <img class="recent-thumb" src="${thumbUrl}" alt="Miniatura">
+        <div class="recent-info">
+          <div class="recent-name">${escapeHtml(item.filename)}</div>
+          <div class="recent-meta">
+            <span class="recent-badge">${ext}</span>
+            <span>${when} · ${size}</span>
+          </div>
+        </div>
+        <div class="recent-arrow">›</div>`;
+      list.appendChild(div);
+    });
   }
 
   // Miniatura ~300 px de ancho para que la lista cargue rápido.
