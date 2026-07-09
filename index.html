@@ -28,7 +28,36 @@
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0A0A0A">
+<meta name="theme-color" content="#0A0A0A" id="metaTheme">
+
+<!-- Modo oscuro automático: se aplica ANTES de renderizar para evitar el
+     flash de tema claro. Regla: dark si (system=dark) O (hora 19-7). -->
+<script>
+  (function () {
+    function esNoche() {
+      const h = new Date().getHours();
+      return h >= 19 || h < 7;
+    }
+    function aplicarTema() {
+      const prefiereOscuro = window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const oscuro = prefiereOscuro || esNoche();
+      const body = document.body || document.documentElement;
+      if (body.classList) body.classList.toggle('dark', oscuro);
+      const meta = document.getElementById('metaTheme');
+      if (meta) meta.setAttribute('content', oscuro ? '#0e0e13' : '#f4f4f7');
+    }
+    // Se ejecuta apenas se pueda (antes del render), luego cuando el body existe.
+    document.addEventListener('DOMContentLoaded', aplicarTema);
+    if (document.body) aplicarTema();
+    // Re-evalúa si el sistema cambia el esquema o cada 10 min por el reloj.
+    if (window.matchMedia) {
+      window.matchMedia('(prefers-color-scheme: dark)')
+        .addEventListener('change', aplicarTema);
+    }
+    setInterval(aplicarTema, 10 * 60 * 1000);
+  })();
+</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -39,14 +68,41 @@
 <link rel="shortcut icon" href="favicon/favicon.ico">
 <style>
   :root {
-    --bg: #f7f7f9;
+    --bg: #f4f4f7;
     --ink: #0A0A0A;
     --ink-soft: #4a4a52;
-    --ink-mute: #8a8a92;
-    --line: #e2e2e6;
+    --ink-mute: #82828c;
+    --line: #c2c3cc;          /* contornos MÁS oscuros y visibles */
+    --line-strong: #9d9ea6;
     --surface: #ffffff;
+    --surface-2: #f4f5f8;
     --brand: #E82127;
     --green: #25D366;
+    --btn-primary-bg: #0A0A0A;
+    --btn-primary-fg: #ffffff;
+    --overlay: rgba(0,0,0,0.55);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+    --shadow-md: 0 6px 20px rgba(0,0,0,0.10);
+  }
+
+  /* ===== Modo oscuro ===== */
+  body.dark {
+    --bg: #0e0e13;
+    --ink: #f2f2f5;
+    --ink-soft: #c0c0c8;
+    --ink-mute: #82828c;
+    --line: #3a3a44;          /* contorno visible sobre superficies oscuras */
+    --line-strong: #55555e;
+    --surface: #1a1a20;
+    --surface-2: #23232a;
+    --brand: #ff4147;
+    --green: #25D366;
+    --btn-primary-bg: #ffffff;
+    --btn-primary-fg: #0e0e13;
+    --overlay: rgba(0,0,0,0.72);
+    --shadow-sm: 0 2px 10px rgba(0,0,0,0.35);
+    --shadow-md: 0 6px 22px rgba(0,0,0,0.45);
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   body {
@@ -108,7 +164,8 @@
   .hero h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.02em; }
   .hero p { font-size: 13px; opacity: 0.75; margin: 0 0 20px; line-height: 1.45; }
   .hero-btn {
-    background: #fff; color: var(--ink);
+    /* El hero SIEMPRE es oscuro, así que este botón mantiene texto negro fijo */
+    background: #fff; color: #0A0A0A;
     border: none; border-radius: 12px;
     padding: 15px 28px; font: 700 15px inherit;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
@@ -129,13 +186,15 @@
   /* Nombre del archivo (paso resultado) — fuente ampliada para móvil */
   .name-row {
     display: flex; align-items: stretch;
-    background: #fafafb;
-    border: 1.5px solid var(--line);
+    background: var(--surface-2);
+    border: 2px solid var(--line-strong);
     border-radius: 14px;
     padding: 0;
     margin: 16px 0 6px;
     overflow: hidden;
+    box-shadow: var(--shadow-sm);
   }
+  .name-row:focus-within { border-color: var(--ink-soft); }
   .name-row label {
     display: flex; align-items: center;
     padding: 14px 12px 14px 16px;
@@ -161,7 +220,8 @@
     padding: 0 16px;
     font: 700 15px inherit;
     color: var(--ink-mute);
-    background: #eef0f3;
+    background: var(--bg);
+    border-left: 1.5px solid var(--line);
   }
   .name-hint {
     font-size: 12.5px; color: var(--ink-mute);
@@ -176,10 +236,11 @@
 
   .card {
     background: var(--surface);
-    border: 1px solid var(--line);
+    border: 1.5px solid var(--line);
     border-radius: 16px;
     padding: 14px;
     margin-bottom: 12px;
+    box-shadow: var(--shadow-sm);
   }
   .card h2 {
     font-size: 14px; margin: 0 0 10px; font-weight: 700;
@@ -236,8 +297,8 @@
   .slots.one { grid-template-columns: 1fr; }
 
   .slot {
-    background: #fafafb;
-    border: 1.5px dashed var(--line);
+    background: var(--surface-2);
+    border: 2px dashed var(--line-strong);
     border-radius: 14px;
     padding: 14px 10px;
     display: flex;
@@ -247,7 +308,7 @@
     min-height: 160px;
     transition: background 0.2s, border-color 0.2s;
   }
-  .slot.has-image { background: #fff; border-style: solid; border-color: var(--line); }
+  .slot.has-image { background: var(--surface); border-style: solid; border-color: var(--line-strong); }
   .slot-label {
     font-size: 11px; font-weight: 700; color: var(--ink-mute);
     text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
@@ -297,23 +358,50 @@
   .slot-cta:active { transform: translateY(0); }
   .slot-cta svg { width: 18px; height: 18px; }
 
-  .slot-upload-link {
-    background: none;
-    border: none;
+  /* Fila de subida — FUERA del cuadro del slot, en el área blanca de la card */
+  .slot-upload-row {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+    padding: 14px 4px 2px;
+    border-top: 1px dashed var(--line);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .upload-label {
+    font-size: 11.5px;
     color: var(--ink-mute);
-    font: 600 12.5px inherit;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .upload-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .upload-chip {
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: 22px;
+    padding: 9px 18px;
+    font: 600 13px inherit;
+    color: var(--ink-soft);
     cursor: pointer;
-    padding: 10px 4px 4px;
-    margin-top: 2px;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
   }
-  .slot-upload-link:hover { color: var(--ink); }
-  .slot-upload-link:hover span { text-decoration: underline; text-underline-offset: 2px; }
-  .slot-upload-link svg { width: 14px; height: 14px; }
+  .upload-chip:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+    background: #fafafb;
+  }
+  .upload-chip svg { width: 14px; height: 14px; }
 
   .btn-main {
     width: 100%;
@@ -785,6 +873,92 @@
     grid-template-columns: 1fr;
     gap: 12px;
   }
+
+  /* ================================================================
+     MODO OSCURO — overrides para elementos con colores hard-codeados
+     ================================================================
+     Las variables --bg/--ink/--surface ya rotan automáticamente con
+     body.dark. Estas reglas arreglan los sitios donde el color estaba
+     escrito directo (#fff, #fafafb, var(--ink) sobre color: #fff, etc.)
+     y garantizan legibilidad total en la noche. */
+
+  /* Botones "primarios" oscuros → se invierten (blancos con texto oscuro) */
+  body.dark .btn-main,
+  body.dark .slot-cta,
+  body.dark .opt-btn.active,
+  body.dark .hist-tool-btn:not(.danger),
+  body.dark .result-actions a,
+  body.dark .result-actions button:not(.wa):not(.mail):not(.secondary) {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-fg);
+    border-color: var(--btn-primary-bg);
+  }
+  body.dark .opt-btn.active .opt-emoji { background: rgba(0,0,0,0.10); }
+
+  /* Superficies planas: back-btn, opt-btn base, slot-btn, upload-chip */
+  body.dark .back-btn,
+  body.dark .opt-btn,
+  body.dark .slot-btn,
+  body.dark .upload-chip,
+  body.dark .hist-btn,
+  body.dark .result-actions .secondary {
+    background: var(--surface-2);
+    color: var(--ink);
+    border-color: var(--line);
+  }
+  body.dark .back-btn:hover,
+  body.dark .slot-btn:hover,
+  body.dark .upload-chip:hover,
+  body.dark .hist-btn:hover { background: #2b2b33; border-color: var(--line-strong); }
+
+  /* Tarjetas de historial y modal */
+  body.dark .hist-modal { background: var(--bg); }
+  body.dark .hist-header { background: var(--surface); border-bottom-color: var(--line); }
+  body.dark .hist-item { background: var(--surface); }
+  body.dark .hist-thumb { background: var(--surface-2); border-color: var(--line); }
+  body.dark .hist-btn.danger { color: var(--brand); }
+  body.dark .hist-tool-btn.danger {
+    background: transparent; color: var(--brand); border-color: var(--brand);
+  }
+  body.dark .hist-empty { color: var(--ink-mute); }
+
+  /* Banner de instalación e instrucciones iOS */
+  body.dark .install-banner {
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  body.dark .install-banner button { background: var(--btn-primary-bg); color: var(--btn-primary-fg); }
+  body.dark .install-banner .dismiss { background: transparent; color: var(--ink); }
+  body.dark .ios-hint { background: var(--surface); color: var(--ink-soft); border-color: var(--line); }
+  body.dark .ios-hint b { color: var(--ink); }
+
+  /* Toast y aviso de update */
+  body.dark .toast { background: var(--btn-primary-bg); color: var(--btn-primary-fg); }
+  body.dark .update-banner { background: #2b7f4a; }
+  body.dark .update-banner button { color: #0e0e13; }
+
+  /* Modal de recorte y filter-bar quedan negros (foto encima) — pero los
+     handles y outline se ven bien tal cual. Solo ajustamos el filter-btn
+     no activo para que se lea mejor. */
+  body.dark .filter-btn { color: #f2f2f5; border-color: rgba(255,255,255,0.35); }
+  body.dark .filter-btn.active { border-color: var(--green); }
+
+  /* Input del nombre */
+  body.dark .name-row { background: var(--surface-2); border-color: var(--line-strong); }
+  body.dark .name-row .ext { background: #14141a; }
+
+  /* Progreso: los puntos usaban var(--ink) que ahora es blanco; el estado
+     "done" debe verse claro sobre bg oscuro (blanco sobre oscuro OK). */
+  body.dark .progress-dot { background: var(--line); }
+  body.dark .progress-dot.done,
+  body.dark .progress-dot.current { background: var(--ink); }
+
+  /* Footer más suave sobre fondo oscuro */
+  body.dark .footer { color: var(--ink-mute); }
+  body.dark .footer .autor { color: var(--ink-soft); }
+
+  /* Hover más sutil sobre botones grandes en oscuro */
+  body.dark .opt-btn:hover { border-color: var(--ink-soft); background: var(--surface); }
 </style>
 </head>
 <body>
@@ -968,9 +1142,9 @@
       <p class="name-hint">Este será el nombre del archivo al guardarlo o enviarlo.</p>
 
       <div class="result-actions">
-        <a id="downloadLink" download="documento.jpg" href="#">⬇ Guardar</a>
-        <button type="button" class="wa" id="btnWhatsApp" onclick="enviarWhatsApp()">💬 WhatsApp</button>
         <button type="button" class="mail" id="btnMail" onclick="enviarCorreo()">✉ Correo</button>
+        <button type="button" class="wa" id="btnWhatsApp" onclick="enviarWhatsApp()">💬 WhatsApp</button>
+        <a id="downloadLink" download="documento.jpg" href="#">⬇ Guardar</a>
         <button class="secondary" type="button" onclick="reiniciar()">↺ Empezar de nuevo</button>
       </div>
     </div>
@@ -1128,15 +1302,33 @@
   }
   window.irPaso = irPaso;
 
-  // SVG inline: cámara (relleno) + subida (línea).
+  // Iconos SVG inline: cámara (relleno) + flecha arriba simple para subida.
   const ICON_CAM = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9.4 3.6L8 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-4l-1.4-1.4a2 2 0 0 0-1.4-.6H10.8a2 2 0 0 0-1.4.6zM12 8.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/></svg>`;
-  const ICON_UP  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`;
+  const ICON_UP  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16"/><path d="M5 11l7-7 7 7"/></svg>`;
 
-  function slotButtons(target) {
+  function slotCTA(target) {
+    return `<button class="slot-cta" type="button" onclick="abrirCamara('${target}')">${ICON_CAM}<span>Tomar foto</span></button>`;
+  }
+
+  function uploadRow(mode) {
+    // Fila de subida al pie de la tarjeta blanca — SEPARADA del slot negro.
+    if (mode === 'una') {
+      return `
+        <div class="slot-upload-row">
+          <div class="upload-label">o subir desde el dispositivo</div>
+          <div class="upload-chips">
+            <button class="upload-chip" type="button" onclick="abrirArchivo('uni')">${ICON_UP}<span>Elegir archivo</span></button>
+          </div>
+        </div>`;
+    }
     return `
-      <button class="slot-cta" type="button" onclick="abrirCamara('${target}')">${ICON_CAM}<span>Tomar foto</span></button>
-      <button class="slot-upload-link" type="button" onclick="abrirArchivo('${target}')">${ICON_UP}<span>Subir desde el dispositivo</span></button>
-    `;
+      <div class="slot-upload-row">
+        <div class="upload-label">o subir desde el dispositivo</div>
+        <div class="upload-chips">
+          <button class="upload-chip" type="button" onclick="abrirArchivo('front')">${ICON_UP}<span>Frontal</span></button>
+          <button class="upload-chip" type="button" onclick="abrirArchivo('back')">${ICON_UP}<span>Trasera</span></button>
+        </div>
+      </div>`;
   }
 
   function renderSlots() {
@@ -1148,8 +1340,9 @@
           <div class="slot-label">Documento</div>
           <div class="slot-placeholder" id="ph-uni">📄</div>
           <img id="preview-uni" class="slot-preview" style="display:none;" alt="Documento">
-          ${slotButtons('uni')}
-        </div>`;
+          ${slotCTA('uni')}
+        </div>
+        ${uploadRow('una')}`;
       uniBlob = null;
       frontBlob = null;
       backBlob = null;
@@ -1160,14 +1353,15 @@
           <div class="slot-label">Parte Frontal</div>
           <div class="slot-placeholder" id="ph-front">🪪</div>
           <img id="preview-front" class="slot-preview" style="display:none;" alt="Frontal">
-          ${slotButtons('front')}
+          ${slotCTA('front')}
         </div>
         <div class="slot" id="slot-back">
           <div class="slot-label">Parte Trasera</div>
           <div class="slot-placeholder" id="ph-back">📝</div>
           <img id="preview-back" class="slot-preview" style="display:none;" alt="Trasera">
-          ${slotButtons('back')}
-        </div>`;
+          ${slotCTA('back')}
+        </div>
+        ${uploadRow('dos')}`;
       uniBlob = null;
     }
   }
