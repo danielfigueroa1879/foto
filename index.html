@@ -468,6 +468,184 @@
   .crop-handle.bl { left: 0;    top: 100%; cursor: nesw-resize; }
   .crop-handle.br { left: 100%; top: 100%; cursor: nwse-resize; }
 
+  /* ===== Ajuste por cuadrilátero (4 esquinas independientes) ===== */
+  .crop-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  #cropHandles {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  #cropHandles .crop-handle {
+    pointer-events: auto;
+    cursor: grab;
+    left: 0; top: 0;
+  }
+  #cropHandles .crop-handle:active { cursor: grabbing; }
+
+  /* Barra de filtro (Natural / Documento) */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px;
+    background: rgba(0,0,0,0.72);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.22);
+    border-radius: 22px;
+    padding: 9px 18px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.15s;
+  }
+  .filter-btn.active {
+    background: #34C759;
+    border-color: #34C759;
+    color: #fff;
+  }
+
+  /* Botón de linterna encendido */
+  .cam-btn.torch-on { background: #FFC107; color: #000; }
+
+  /* Botón secundario dentro del hero (Historial) */
+  .hero-btn-sec {
+    background: transparent;
+    color: rgba(255,255,255,0.75);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 11px 22px;
+    font: 600 13px inherit;
+    cursor: pointer;
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hero-btn-sec:hover { background: rgba(255,255,255,0.08); }
+
+  /* ===== Historial ===== */
+  .hist-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg);
+    z-index: 90;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .hist-modal.show { display: flex; }
+  .hist-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 12px;
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 1;
+  }
+  .hist-body {
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .hist-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink-mute);
+  }
+  .hist-empty-icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+  .hist-empty small { display: block; margin-top: 6px; font-size: 12px; opacity: 0.75; }
+  .hist-item {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    gap: 12px;
+  }
+  .hist-thumb {
+    width: 68px; height: 88px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #f0f0f0;
+    border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .hist-info { flex: 1; min-width: 0; }
+  .hist-name {
+    font-weight: 700;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .hist-date {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 2px;
+  }
+  .hist-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .hist-btn {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 11px;
+    font: 600 12px inherit;
+    color: var(--ink);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hist-btn:hover { background: #eef0f3; }
+  .hist-btn.danger { color: var(--brand); }
+
+  /* Barra superior del historial: acciones sobre TODO el listado */
+  .hist-toolbar {
+    display: none;
+    gap: 8px;
+    padding: 10px 12px 0;
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    flex-wrap: wrap;
+  }
+  .hist-toolbar.show { display: flex; }
+  .hist-tool-btn {
+    flex: 1;
+    min-width: 140px;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px 14px;
+    font: 700 13px inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hist-tool-btn:hover { opacity: 0.9; }
+  .hist-tool-btn.danger {
+    background: #fff; color: var(--brand);
+    border: 1.5px solid var(--brand);
+  }
+
   /* Botón instalar app (aparece solo cuando el navegador ofrece instalación) */
   .install-banner {
     display: none;
@@ -567,6 +745,11 @@
       <h2>Escanea tu documento</h2>
       <p>Combina las dos caras de una cédula o licencia, o centra un documento en una hoja lista para imprimir o enviar.</p>
       <button type="button" class="hero-btn" onclick="irPaso(1)">📷 Comenzar</button>
+      <div>
+        <button type="button" class="hero-btn-sec" onclick="abrirHistorial()" id="btnHist" style="display:none;">
+          📁 Ver historial (<span id="histCount">0</span>)
+        </button>
+      </div>
     </div>
   </section>
 
@@ -727,28 +910,58 @@
   </div>
   <div class="cam-controls">
     <button class="cam-btn" type="button" onclick="cerrarCamara()" title="Cancelar">✕</button>
+    <button class="cam-btn" type="button" id="btnTorch" onclick="toggleTorch()" title="Linterna" style="display:none;">💡</button>
     <button class="cam-btn capture" type="button" onclick="capturar()" title="Capturar"><div></div></button>
     <button class="cam-btn" type="button" onclick="cambiarCamara()" title="Cambiar cámara">🔄</button>
   </div>
 </div>
 
-<!-- Modal recorte (galería) -->
+<!-- Modal recorte (galería y cámara): 4 esquinas independientes -->
 <div class="crop-modal" id="cropModal">
-  <div class="cam-instr">Ajusta el recorte y confirma</div>
+  <div class="cam-instr" id="cropInstr">Ajusta las esquinas verdes al borde del documento</div>
   <div class="crop-container" id="cropContainer">
     <img id="cropImage" class="crop-image" alt="">
-    <div class="crop-selection" id="cropSelection" style="display:none;">
-      <div class="crop-handle tl" data-h="tl"></div>
-      <div class="crop-handle tr" data-h="tr"></div>
-      <div class="crop-handle bl" data-h="bl"></div>
-      <div class="crop-handle br" data-h="br"></div>
+    <svg id="cropSvg" class="crop-svg" style="display:none;" preserveAspectRatio="none">
+      <defs>
+        <mask id="cropMask">
+          <rect x="0" y="0" width="100%" height="100%" fill="white"/>
+          <polygon id="cropPoly" fill="black"/>
+        </mask>
+      </defs>
+      <rect x="0" y="0" width="100%" height="100%" fill="rgba(0,0,0,0.55)" mask="url(#cropMask)"/>
+      <polygon id="cropOutline" fill="none" stroke="#34C759" stroke-width="2.5"/>
+    </svg>
+    <div id="cropHandles" style="display:none;">
+      <div class="crop-handle" data-h="tl"></div>
+      <div class="crop-handle" data-h="tr"></div>
+      <div class="crop-handle" data-h="br"></div>
+      <div class="crop-handle" data-h="bl"></div>
     </div>
+  </div>
+  <div class="filter-bar" id="filterBar" style="display:none;">
+    <button type="button" class="filter-btn active" data-f="natural" onclick="setFilter('natural')">🌈 Natural</button>
+    <button type="button" class="filter-btn" data-f="document" onclick="setFilter('document')">📄 Documento</button>
   </div>
   <div class="cam-controls">
     <button class="cam-btn" type="button" onclick="cancelarRecorte()" title="Cancelar">✕</button>
     <button class="cam-btn capture confirm" type="button" onclick="confirmarRecorte()" title="Confirmar recorte"><div></div></button>
     <button class="cam-btn" type="button" onclick="reiniciarRecorte()" title="Reiniciar recorte">↺</button>
   </div>
+</div>
+
+<!-- Modal historial -->
+<div class="hist-modal" id="histModal">
+  <div class="hist-header">
+    <button class="back-btn" type="button" onclick="cerrarHistorial()" aria-label="Volver">‹</button>
+    <div class="step-title">Historial de documentos
+      <small>Últimos 50 guardados en este dispositivo</small>
+    </div>
+  </div>
+  <div class="hist-toolbar" id="histToolbar">
+    <button class="hist-tool-btn" type="button" onclick="exportarTodo()">📦 Exportar todo</button>
+    <button class="hist-tool-btn danger" type="button" onclick="vaciarHistorial()">🗑 Vaciar historial</button>
+  </div>
+  <div class="hist-body" id="histBody"></div>
 </div>
 
 <!-- Toast -->
@@ -902,27 +1115,39 @@
     if (!input.files.length) return;
     const file = input.files[0];
     // Abre el editor de recorte antes de asignar la imagen al slot.
-    abrirRecorte(fileTarget, file);
+    abrirRecorte(fileTarget, file, 'file');
   }
 
-  // ============= Recorte de imágenes de galería =============
+  // ============= Ajuste de esquinas (galería y cámara) =============
+  // Sistema de 4 esquinas independientes que forman un cuadrilátero libre.
+  // Al confirmar se aplica warp de perspectiva (2 triángulos con transformación afín)
+  // para enderezar el documento aunque la foto quede torcida o inclinada.
   let cropTarget = null;
   let cropSourceBlob = null;
-  let cropRect = null;      // {x, y, w, h} en coordenadas del contenedor
-  let cropDrag = null;      // { mode, startX, startY, orig, containerRect }
+  let cropQuad = null;      // { tl, tr, br, bl } → cada uno {x, y} en coords del contenedor
+  let cropDrag = null;      // { handle, startX, startY, orig, containerRect }
+  let cropEnhance = 'natural'; // 'natural' | 'document'
+  let cropSource = 'file';  // 'file' | 'camera'
 
-  function abrirRecorte(target, blob) {
+  function abrirRecorte(target, blob, source) {
     cropTarget = target;
     cropSourceBlob = blob;
-    const modal = document.getElementById('cropModal');
+    cropSource = source || 'file';
+    cropEnhance = 'natural';
+    document.querySelectorAll('#filterBar .filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.f === 'natural');
+    });
+    document.getElementById('cropInstr').textContent = cropSource === 'camera'
+      ? 'Ajusta las esquinas verdes al borde del documento capturado'
+      : 'Ajusta las esquinas verdes al borde del documento';
+    document.getElementById('filterBar').style.display = 'flex';
+    document.getElementById('cropSvg').style.display = 'none';
+    document.getElementById('cropHandles').style.display = 'none';
+    document.getElementById('cropModal').classList.add('show');
     const img = document.getElementById('cropImage');
-    const sel = document.getElementById('cropSelection');
-    sel.style.display = 'none';
-    modal.classList.add('show');
-    // Limpia el src anterior (si existe) para forzar onload en imágenes cacheadas.
     const prev = img.src;
     img.onload = () => {
-      requestAnimationFrame(initCropSelection);
+      requestAnimationFrame(initCropQuad);
       if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
     };
     img.src = URL.createObjectURL(blob);
@@ -943,50 +1168,56 @@
     return { x: (cw - w) / 2, y: (ch - h) / 2, w, h, scale };
   }
 
-  function initCropSelection() {
+  function initCropQuad() {
     const disp = getImageDisplayRect();
     if (!disp.w || !disp.h) return;
-    // Selección inicial: 90 % del área visible de la imagen.
-    const w = disp.w * 0.9;
-    const h = disp.h * 0.9;
-    cropRect = {
-      x: disp.x + (disp.w - w) / 2,
-      y: disp.y + (disp.h - h) / 2,
-      w, h
+    const margin = 0.06;
+    const x = disp.x + disp.w * margin;
+    const y = disp.y + disp.h * margin;
+    const w = disp.w * (1 - margin * 2);
+    const h = disp.h * (1 - margin * 2);
+    cropQuad = {
+      tl: { x, y },
+      tr: { x: x + w, y },
+      br: { x: x + w, y: y + h },
+      bl: { x, y: y + h }
     };
-    const sel = document.getElementById('cropSelection');
-    sel.style.display = 'block';
-    drawCropSelection();
+    document.getElementById('cropSvg').style.display = 'block';
+    document.getElementById('cropHandles').style.display = 'block';
+    drawCropQuad();
   }
 
-  function drawCropSelection() {
-    const sel = document.getElementById('cropSelection');
-    sel.style.left = cropRect.x + 'px';
-    sel.style.top = cropRect.y + 'px';
-    sel.style.width = cropRect.w + 'px';
-    sel.style.height = cropRect.h + 'px';
+  function drawCropQuad() {
+    if (!cropQuad) return;
+    const pts = [cropQuad.tl, cropQuad.tr, cropQuad.br, cropQuad.bl];
+    const ptsStr = pts.map(p => `${p.x},${p.y}`).join(' ');
+    document.getElementById('cropPoly').setAttribute('points', ptsStr);
+    document.getElementById('cropOutline').setAttribute('points', ptsStr);
+    document.querySelectorAll('#cropHandles .crop-handle').forEach(h => {
+      const p = cropQuad[h.dataset.h];
+      h.style.left = p.x + 'px';
+      h.style.top = p.y + 'px';
+    });
   }
 
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
   function onCropPointerDown(e) {
-    if (!cropRect) return;
+    if (!cropQuad) return;
+    const handle = e.target && e.target.dataset ? e.target.dataset.h : null;
+    if (!handle) return;
     const container = document.getElementById('cropContainer');
     const rect = container.getBoundingClientRect();
-    const px = e.clientX - rect.left;
-    const py = e.clientY - rect.top;
-    const handle = e.target && e.target.dataset ? e.target.dataset.h : null;
-    if (handle) {
-      cropDrag = { mode: handle, startX: px, startY: py, orig: { ...cropRect }, containerRect: rect };
-    } else if (px >= cropRect.x && px <= cropRect.x + cropRect.w &&
-               py >= cropRect.y && py <= cropRect.y + cropRect.h) {
-      cropDrag = { mode: 'move', startX: px, startY: py, orig: { ...cropRect }, containerRect: rect };
-    }
-    if (cropDrag) {
-      e.preventDefault();
-      if (container.setPointerCapture && e.pointerId != null) {
-        try { container.setPointerCapture(e.pointerId); } catch (_) {}
-      }
+    cropDrag = {
+      handle,
+      startX: e.clientX - rect.left,
+      startY: e.clientY - rect.top,
+      orig: { ...cropQuad[handle] },
+      containerRect: rect
+    };
+    e.preventDefault();
+    if (container.setPointerCapture && e.pointerId != null) {
+      try { container.setPointerCapture(e.pointerId); } catch (_) {}
     }
   }
 
@@ -998,27 +1229,10 @@
     const dx = px - cropDrag.startX;
     const dy = py - cropDrag.startY;
     const disp = getImageDisplayRect();
-    const dispR = disp.x + disp.w;
-    const dispB = disp.y + disp.h;
-    const min = 40;
-    const o = cropDrag.orig;
-    let x, y, w, h;
-
-    if (cropDrag.mode === 'move') {
-      x = clamp(o.x + dx, disp.x, dispR - o.w);
-      y = clamp(o.y + dy, disp.y, dispB - o.h);
-      w = o.w; h = o.h;
-    } else {
-      // Redimensiona la esquina arrastrada, dejando fija la opuesta.
-      let nx1 = o.x, ny1 = o.y, nx2 = o.x + o.w, ny2 = o.y + o.h;
-      if (cropDrag.mode.includes('l')) nx1 = clamp(o.x + dx, disp.x, nx2 - min);
-      if (cropDrag.mode.includes('r')) nx2 = clamp(o.x + o.w + dx, nx1 + min, dispR);
-      if (cropDrag.mode.includes('t')) ny1 = clamp(o.y + dy, disp.y, ny2 - min);
-      if (cropDrag.mode.includes('b')) ny2 = clamp(o.y + o.h + dy, ny1 + min, dispB);
-      x = nx1; y = ny1; w = nx2 - nx1; h = ny2 - ny1;
-    }
-    cropRect = { x, y, w, h };
-    drawCropSelection();
+    const nx = clamp(cropDrag.orig.x + dx, disp.x, disp.x + disp.w);
+    const ny = clamp(cropDrag.orig.y + dy, disp.y, disp.y + disp.h);
+    cropQuad[cropDrag.handle] = { x: nx, y: ny };
+    drawCropQuad();
   }
 
   function onCropPointerUp() {
@@ -1026,7 +1240,7 @@
   }
 
   function reiniciarRecorte() {
-    initCropSelection();
+    initCropQuad();
   }
   window.reiniciarRecorte = reiniciarRecorte;
 
@@ -1042,28 +1256,114 @@
     const img = document.getElementById('cropImage');
     if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
     img.removeAttribute('src');
+    document.getElementById('cropSvg').style.display = 'none';
+    document.getElementById('cropHandles').style.display = 'none';
+    document.getElementById('filterBar').style.display = 'none';
     cropSourceBlob = null;
     cropTarget = null;
-    cropRect = null;
+    cropQuad = null;
     cropDrag = null;
   }
 
+  function setFilter(f) {
+    cropEnhance = f;
+    document.querySelectorAll('#filterBar .filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.f === f);
+    });
+  }
+  window.setFilter = setFilter;
+
+  // Dibuja un triángulo con textura del <img> aplicando la transformación afín
+  // que mapea (u0,v0)→(x0,y0), (u1,v1)→(x1,y1), (u2,v2)→(x2,y2). Usada dos
+  // veces para simular perspectiva sobre el cuadrilátero.
+  function drawTexturedTriangle(ctx, img, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.closePath();
+    ctx.clip();
+    const denom = u0 * (v2 - v1) - u1 * v2 + u2 * v1 + (u1 - u2) * v0;
+    if (denom === 0) { ctx.restore(); return; }
+    const a = -(v0 * (x2 - x1) - v1 * x2 + v2 * x1 + (v1 - v2) * x0) / denom;
+    const b =  (v1 * y2 + v0 * (y1 - y2) - v2 * y1 + (v2 - v1) * y0) / denom;
+    const c =  (u0 * (x2 - x1) - u1 * x2 + u2 * x1 + (u1 - u2) * x0) / denom;
+    const d = -(u1 * y2 + u0 * (y1 - y2) - u2 * y1 + (u2 - u1) * y0) / denom;
+    const e =  (u0 * (v2 * x1 - v1 * x2) + v0 * (u1 * x2 - u2 * x1) + (u2 * v1 - u1 * v2) * x0) / denom;
+    const f =  (u0 * (v2 * y1 - v1 * y2) + v0 * (u1 * y2 - u2 * y1) + (u2 * v1 - u1 * v2) * y0) / denom;
+    ctx.transform(a, b, c, d, e, f);
+    ctx.drawImage(img, 0, 0);
+    ctx.restore();
+  }
+
+  // Filtro "documento": escala de grises con alto contraste tipo escaneado.
+  function applyDocumentFilter(canvas) {
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const gray = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+      let v = (gray - 70) * (255 / (200 - 70));
+      if (v < 0) v = 0; else if (v > 255) v = 255;
+      d[i] = d[i+1] = d[i+2] = v;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
   async function confirmarRecorte() {
-    if (!cropSourceBlob || !cropRect) return;
+    if (!cropSourceBlob || !cropQuad) return;
     const target = cropTarget;
     const disp = getImageDisplayRect();
     if (!disp.scale) return;
-    // Convierte la selección (px del contenedor) al espacio de píxeles del original.
-    const sx = Math.max(0, (cropRect.x - disp.x) / disp.scale);
-    const sy = Math.max(0, (cropRect.y - disp.y) / disp.scale);
-    const sw = cropRect.w / disp.scale;
-    const sh = cropRect.h / disp.scale;
+    // Coordenadas del cuadrilátero en el espacio de píxeles del original.
+    const toImg = p => ({
+      x: (p.x - disp.x) / disp.scale,
+      y: (p.y - disp.y) / disp.scale
+    });
+    const q = {
+      tl: toImg(cropQuad.tl),
+      tr: toImg(cropQuad.tr),
+      br: toImg(cropQuad.br),
+      bl: toImg(cropQuad.bl)
+    };
     const src = await loadImage(cropSourceBlob);
+
+    // Aspect del canvas de salida.
+    let targetW, targetH;
+    if (cropSource === 'camera' && tipo === 'dos') {
+      // Tarjeta CR80: 1000 × 630
+      targetW = 1000; targetH = Math.round(1000 / 1.586);
+    } else if (cropSource === 'camera') {
+      // Una cara: mismo aspect que la hoja destino para llenarla.
+      const [sw, sh] = sheetSize();
+      targetW = 900; targetH = Math.round(900 * sh / sw);
+    } else {
+      // Galería: aspecto medio del cuadrilátero.
+      const topW = Math.hypot(q.tr.x - q.tl.x, q.tr.y - q.tl.y);
+      const botW = Math.hypot(q.br.x - q.bl.x, q.br.y - q.bl.y);
+      const lefH = Math.hypot(q.bl.x - q.tl.x, q.bl.y - q.tl.y);
+      const rigH = Math.hypot(q.br.x - q.tr.x, q.br.y - q.tr.y);
+      targetW = Math.max(200, Math.round((topW + botW) / 2));
+      targetH = Math.max(200, Math.round((lefH + rigH) / 2));
+    }
+
     const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(sw));
-    canvas.height = Math.max(1, Math.round(sh));
+    canvas.width = targetW;
+    canvas.height = targetH;
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(src, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Warp por dos triángulos: tl-tr-br  y  tl-br-bl.
+    drawTexturedTriangle(ctx, src,
+      0, 0, targetW, 0, targetW, targetH,
+      q.tl.x, q.tl.y, q.tr.x, q.tr.y, q.br.x, q.br.y);
+    drawTexturedTriangle(ctx, src,
+      0, 0, targetW, targetH, 0, targetH,
+      q.tl.x, q.tl.y, q.br.x, q.br.y, q.bl.x, q.bl.y);
+
+    if (cropEnhance === 'document') applyDocumentFilter(canvas);
+
     const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.92));
     if (!blob) { showToast('Error al recortar'); return; }
     const url = URL.createObjectURL(blob);
@@ -1072,11 +1372,10 @@
     const inp = document.getElementById('fileInput');
     if (inp) inp.value = '';
     cerrarRecorteInterno();
-    showToast('Imagen recortada');
+    showToast(cropEnhance === 'document' ? 'Imagen ajustada · modo documento' : 'Imagen ajustada');
   }
   window.confirmarRecorte = confirmarRecorte;
 
-  // Registra los handlers de puntero para el recorte.
   (function attachCropHandlers() {
     const container = document.getElementById('cropContainer');
     if (!container) return;
@@ -1084,10 +1383,9 @@
     container.addEventListener('pointermove', onCropPointerMove);
     container.addEventListener('pointerup', onCropPointerUp);
     container.addEventListener('pointercancel', onCropPointerUp);
-    // Recalcular selección si cambia el tamaño de la ventana estando abierto.
     window.addEventListener('resize', () => {
-      if (document.getElementById('cropModal').classList.contains('show') && cropRect) {
-        initCropSelection();
+      if (document.getElementById('cropModal').classList.contains('show') && cropQuad) {
+        initCropQuad();
       }
     });
   })();
@@ -1120,6 +1418,8 @@
         audio: false
       });
       document.getElementById('camVideo').srcObject = stream;
+      // Esperar a que el track exponga capabilities antes de consultar torch.
+      setTimeout(updateTorchButton, 300);
     } catch (e) {
       console.error('Cámara:', e);
       showToast('No se pudo acceder a la cámara');
@@ -1127,8 +1427,18 @@
     }
   }
 
-  function cerrarCamara() {
-    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  async function cerrarCamara() {
+    if (stream) {
+      const track = stream.getVideoTracks()[0];
+      if (track && torchOn) {
+        try { await track.applyConstraints({ advanced: [{ torch: false }] }); } catch (_) {}
+      }
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    torchOn = false;
+    const btn = document.getElementById('btnTorch');
+    if (btn) { btn.style.display = 'none'; btn.classList.remove('torch-on'); }
     document.getElementById('camModal').classList.remove('show');
     document.getElementById('camVideo').srcObject = null;
   }
@@ -1140,54 +1450,54 @@
 
   function capturar() {
     const video = document.getElementById('camVideo');
-    const container = video.parentElement;
-    const cutout = document.getElementById('camCutout');
     if (!video || !stream) return;
     const vw = video.videoWidth, vh = video.videoHeight;
     if (!vw || !vh) { showToast('Cámara no lista'); return; }
-
-    // Mapear el marco visible al espacio de píxeles del video (compensando object-fit: cover).
-    const cRect = container.getBoundingClientRect();
-    const scale = Math.max(cRect.width / vw, cRect.height / vh);
-    const offsetX = (vw * scale - cRect.width) / 2;
-    const offsetY = (vh * scale - cRect.height) / 2;
-    const gRect = cutout.getBoundingClientRect();
-    const gX = gRect.left - cRect.left;
-    const gY = gRect.top - cRect.top;
-    const cropX = (gX + offsetX) / scale;
-    const cropY = (gY + offsetY) / scale;
-    const cropW = gRect.width / scale;
-    const cropH = gRect.height / scale;
-
-    // Salida: en modo tarjeta se conserva el borde blanco (look "escaneada");
-    // en modo una-cara el aspecto sale idéntico a la hoja para llenarla al 100 %.
-    let targetW, targetH, pad;
-    if (tipo === 'dos') {
-      targetW = 1000; targetH = Math.round(1000 / 1.586);   // 630 (CR80)
-      pad = 40;
-    } else {
-      const [sheetW, sheetH] = sheetSize();
-      targetW = 900;
-      targetH = Math.round(900 * sheetH / sheetW);           // mismo aspecto de la hoja
-      pad = 0;                                               // sin borde: la captura llena el papel
-    }
-
+    // Captura el frame completo (sin recortar al marco) para que el usuario
+    // pueda ajustar las 4 esquinas del documento en el paso siguiente aunque
+    // el papel se haya salido un poco del cuadro verde.
     const canvas = document.createElement('canvas');
-    canvas.width = targetW + pad * 2;
-    canvas.height = targetH + pad * 2;
+    canvas.width = vw;
+    canvas.height = vh;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(video, cropX, cropY, cropW, cropH, pad, pad, targetW, targetH);
-
+    ctx.drawImage(video, 0, 0, vw, vh);
     canvas.toBlob(blob => {
       if (!blob) { showToast('Error al capturar'); return; }
-      const url = URL.createObjectURL(blob);
-      assignBlob(camTarget, blob);
-      showPreview(camTarget, url);
+      const t = camTarget;
       cerrarCamara();
-      showToast('Imagen capturada');
-    }, 'image/jpeg', 0.92);
+      abrirRecorte(t, blob, 'camera');
+    }, 'image/jpeg', 0.95);
+  }
+
+  // ============= Linterna (flash trasero) =============
+  let torchOn = false;
+
+  async function toggleTorch() {
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+    const caps = (track.getCapabilities && track.getCapabilities()) || {};
+    if (!caps.torch) { showToast('Linterna no disponible'); return; }
+    torchOn = !torchOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+      document.getElementById('btnTorch').classList.toggle('torch-on', torchOn);
+    } catch (e) {
+      torchOn = !torchOn;
+      showToast('No se pudo cambiar la linterna');
+    }
+  }
+  window.toggleTorch = toggleTorch;
+
+  function updateTorchButton() {
+    const btn = document.getElementById('btnTorch');
+    if (!btn) return;
+    if (!stream) { btn.style.display = 'none'; return; }
+    const track = stream.getVideoTracks()[0];
+    const caps = (track && track.getCapabilities) ? track.getCapabilities() : {};
+    btn.style.display = caps.torch ? 'flex' : 'none';
+    btn.classList.remove('torch-on');
+    torchOn = false;
   }
 
   // ============= Generación de la hoja =============
@@ -1305,6 +1615,11 @@
 
       ultimoResultado = { blob, ext, mime, filename, url: previewUrl, baseName };
 
+      // Guardado automático en historial (no bloquea la UI).
+      generarThumb(canvas).then(thumbBlob => {
+        guardarEnHistorial(blob, thumbBlob, { filename, ext, mime, tipo, tam, fmt });
+      });
+
       // Para PDF mostramos el canvas como preview (los <img> no muestran PDFs).
       const previewImg = fmt === 'pdf' ? canvas.toDataURL('image/jpeg', 0.85) : previewUrl;
       document.getElementById('resultImg').src = previewImg;
@@ -1421,8 +1736,311 @@
     irPaso(0);
   }
 
+  // ============= Historial (IndexedDB) =============
+  const HIST_DB_NAME = 'scanerHistorial';
+  const HIST_STORE = 'docs';
+  const HIST_MAX = 50;
+  let _histDbPromise = null;
+
+  function openHistDB() {
+    if (_histDbPromise) return _histDbPromise;
+    _histDbPromise = new Promise((res, rej) => {
+      const req = indexedDB.open(HIST_DB_NAME, 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(HIST_STORE)) {
+          const store = db.createObjectStore(HIST_STORE, { keyPath: 'id', autoIncrement: true });
+          store.createIndex('fecha', 'fecha');
+        }
+      };
+      req.onsuccess = e => res(e.target.result);
+      req.onerror = e => rej(e.target.error);
+    });
+    return _histDbPromise;
+  }
+
+  async function guardarEnHistorial(blob, thumbBlob, meta) {
+    try {
+      const db = await openHistDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(HIST_STORE, 'readwrite');
+        tx.objectStore(HIST_STORE).add({ ...meta, blob, thumbBlob, fecha: Date.now() });
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+      // Rotación: si superamos el máximo, borrar los más antiguos.
+      const items = await listarHistorial();
+      if (items.length > HIST_MAX) {
+        const toDelete = items.slice(HIST_MAX);
+        const tx2 = db.transaction(HIST_STORE, 'readwrite');
+        const s = tx2.objectStore(HIST_STORE);
+        toDelete.forEach(it => s.delete(it.id));
+      }
+      actualizarBadgeHistorial();
+    } catch (e) {
+      console.warn('No se pudo guardar en historial:', e);
+    }
+  }
+
+  async function listarHistorial() {
+    try {
+      const db = await openHistDB();
+      return new Promise(res => {
+        const tx = db.transaction(HIST_STORE, 'readonly');
+        const req = tx.objectStore(HIST_STORE).getAll();
+        req.onsuccess = () => {
+          const items = req.result || [];
+          items.sort((a, b) => b.fecha - a.fecha);
+          res(items);
+        };
+        req.onerror = () => res([]);
+      });
+    } catch (_) { return []; }
+  }
+
+  async function borrarDelHistorial(id) {
+    try {
+      const db = await openHistDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(HIST_STORE, 'readwrite');
+        tx.objectStore(HIST_STORE).delete(id);
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+    } catch (e) { console.warn('Error al borrar:', e); }
+  }
+
+  async function actualizarBadgeHistorial() {
+    const items = await listarHistorial();
+    const btn = document.getElementById('btnHist');
+    const cnt = document.getElementById('histCount');
+    if (!btn || !cnt) return;
+    if (items.length > 0) {
+      btn.style.display = 'inline-flex';
+      cnt.textContent = items.length;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+
+  // Miniatura ~300 px de ancho para que la lista cargue rápido.
+  async function generarThumb(canvas) {
+    const maxW = 300;
+    const scale = Math.min(1, maxW / canvas.width);
+    const c = document.createElement('canvas');
+    c.width = Math.round(canvas.width * scale);
+    c.height = Math.round(canvas.height * scale);
+    const ctx = c.getContext('2d');
+    ctx.drawImage(canvas, 0, 0, c.width, c.height);
+    return new Promise(r => c.toBlob(r, 'image/jpeg', 0.75));
+  }
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1024 * 1024) return (b / 1024).toFixed(0) + ' KB';
+    return (b / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  function tiempoRelativo(ts) {
+    const s = Math.round((Date.now() - ts) / 1000);
+    if (s < 60) return 'Ahora mismo';
+    if (s < 3600) return `Hace ${Math.round(s/60)} min`;
+    if (s < 86400) return `Hace ${Math.round(s/3600)} h`;
+    const d = Math.round(s / 86400);
+    if (d < 30) return `Hace ${d} día${d > 1 ? 's' : ''}`;
+    return new Date(ts).toLocaleDateString();
+  }
+
+  async function abrirHistorial() {
+    document.getElementById('histModal').classList.add('show');
+    await renderHistorial();
+  }
+  window.abrirHistorial = abrirHistorial;
+
+  function cerrarHistorial() {
+    document.getElementById('histModal').classList.remove('show');
+    // Liberar object URLs generados en el render.
+    document.querySelectorAll('#histBody .hist-thumb').forEach(img => {
+      if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+    });
+    document.getElementById('histBody').innerHTML = '';
+  }
+  window.cerrarHistorial = cerrarHistorial;
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
+
+  async function renderHistorial() {
+    const body = document.getElementById('histBody');
+    const toolbar = document.getElementById('histToolbar');
+    const items = await listarHistorial();
+    if (!items.length) {
+      if (toolbar) toolbar.classList.remove('show');
+      body.innerHTML = `
+        <div class="hist-empty">
+          <div class="hist-empty-icon">📁</div>
+          <div>No hay documentos guardados aún.</div>
+          <small>Los documentos que generes aparecerán aquí automáticamente.</small>
+        </div>`;
+      return;
+    }
+    if (toolbar) toolbar.classList.add('show');
+    body.innerHTML = '';
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'hist-item';
+      const thumbUrl = URL.createObjectURL(item.thumbBlob || item.blob);
+      const size = formatBytes(item.blob.size);
+      const when = tiempoRelativo(item.fecha);
+      const ext = (item.ext || 'jpg').toUpperCase();
+      div.innerHTML = `
+        <img class="hist-thumb" src="${thumbUrl}" alt="Miniatura">
+        <div class="hist-info">
+          <div class="hist-name">${escapeHtml(item.filename)}</div>
+          <div class="hist-date">${when} · ${ext} · ${size}</div>
+          <div class="hist-actions">
+            <button class="hist-btn" data-act="download">⬇ Guardar</button>
+            <button class="hist-btn" data-act="wa">💬 WhatsApp</button>
+            <button class="hist-btn" data-act="mail">✉ Correo</button>
+            <button class="hist-btn danger" data-act="del">🗑</button>
+          </div>
+        </div>`;
+      div.querySelectorAll('.hist-btn').forEach(b => {
+        b.addEventListener('click', () => accionHistorial(item, b.dataset.act));
+      });
+      body.appendChild(div);
+    });
+  }
+
+  async function compartirBlob(blob, filename, mime, texto, titulo) {
+    if (!navigator.share) return false;
+    try {
+      const file = new File([blob], filename, { type: mime });
+      if (navigator.canShare && !navigator.canShare({ files: [file] })) return false;
+      await navigator.share({ files: [file], title: titulo, text: texto });
+      return true;
+    } catch (e) {
+      if (e.name === 'AbortError') return true;
+      return false;
+    }
+  }
+
+  function descargarBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  async function accionHistorial(item, act) {
+    if (act === 'download') {
+      descargarBlob(item.blob, item.filename);
+      showToast('Descargando…');
+      return;
+    }
+    if (act === 'del') {
+      if (!confirm(`¿Borrar "${item.filename}"?`)) return;
+      await borrarDelHistorial(item.id);
+      await renderHistorial();
+      await actualizarBadgeHistorial();
+      showToast('Documento borrado');
+      return;
+    }
+    if (act === 'wa' || act === 'mail') {
+      const texto = act === 'wa' ? 'Documento escaneado 📄' : 'Adjunto el documento escaneado.';
+      const ok = await compartirBlob(item.blob, item.filename, item.mime, texto, 'Documento escaneado');
+      if (ok) return;
+      descargarBlob(item.blob, item.filename);
+      if (act === 'wa') {
+        showToast('Archivo descargado — adjúntalo en WhatsApp');
+        window.open('https://web.whatsapp.com/', '_blank', 'noopener');
+      } else {
+        showToast('Archivo descargado — adjúntalo al correo');
+        const subject = encodeURIComponent('Documento escaneado');
+        const body = encodeURIComponent('Adjunto el documento (' + item.filename + ').');
+        window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      }
+    }
+  }
+
+  // Carga JSZip solo cuando el usuario exporta el historial completo.
+  let jsZipPromise = null;
+  function cargarJsZip() {
+    if (jsZipPromise) return jsZipPromise;
+    jsZipPromise = new Promise((res, rej) => {
+      if (window.JSZip) return res(window.JSZip);
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = () => window.JSZip ? res(window.JSZip) : rej(new Error('JSZip no disponible'));
+      s.onerror = () => rej(new Error('No se pudo cargar la librería ZIP'));
+      document.head.appendChild(s);
+    });
+    return jsZipPromise;
+  }
+
+  async function exportarTodo() {
+    const items = await listarHistorial();
+    if (!items.length) { showToast('No hay documentos para exportar'); return; }
+    try {
+      showToast('Preparando archivo…');
+      const JSZip = await cargarJsZip();
+      const zip = new JSZip();
+      // Evita colisiones si dos documentos comparten nombre.
+      const used = new Set();
+      items.forEach(item => {
+        let name = item.filename;
+        let n = 1;
+        while (used.has(name)) {
+          const dot = item.filename.lastIndexOf('.');
+          const base = dot > 0 ? item.filename.slice(0, dot) : item.filename;
+          const ext  = dot > 0 ? item.filename.slice(dot) : '';
+          name = `${base}_${n}${ext}`;
+          n++;
+        }
+        used.add(name);
+        zip.file(name, item.blob);
+      });
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const filename = `escaner_historial_${new Date().toISOString().slice(0, 10)}.zip`;
+      const ok = await compartirBlob(blob, filename, 'application/zip', 'Historial de documentos', 'Historial');
+      if (!ok) descargarBlob(blob, filename);
+      showToast(`${items.length} documento${items.length > 1 ? 's' : ''} exportado${items.length > 1 ? 's' : ''}`);
+    } catch (e) {
+      console.error(e);
+      showToast('Error al exportar: ' + e.message);
+    }
+  }
+  window.exportarTodo = exportarTodo;
+
+  async function vaciarHistorial() {
+    const items = await listarHistorial();
+    if (!items.length) { showToast('El historial ya está vacío'); return; }
+    if (!confirm(`¿Borrar los ${items.length} documento${items.length > 1 ? 's' : ''} guardado${items.length > 1 ? 's' : ''}? Esta acción no se puede deshacer.`)) return;
+    try {
+      const db = await openHistDB();
+      await new Promise((res, rej) => {
+        const tx = db.transaction(HIST_STORE, 'readwrite');
+        tx.objectStore(HIST_STORE).clear();
+        tx.oncomplete = res;
+        tx.onerror = () => rej(tx.error);
+      });
+      await renderHistorial();
+      await actualizarBadgeHistorial();
+      showToast('Historial vaciado');
+    } catch (e) {
+      console.error(e);
+      showToast('Error al vaciar: ' + e.message);
+    }
+  }
+  window.vaciarHistorial = vaciarHistorial;
+
   // Render inicial
   renderSlots();
+  actualizarBadgeHistorial();
 
   // ============= PWA: instalación =============
 
