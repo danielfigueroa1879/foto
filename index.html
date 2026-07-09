@@ -646,6 +646,37 @@
     border: 1.5px solid var(--brand);
   }
 
+  /* Aviso de nueva versión disponible del SW */
+  .update-banner {
+    display: none;
+    position: fixed;
+    left: 12px; right: 12px; top: 12px;
+    background: #34C759;
+    color: #fff;
+    padding: 12px 14px;
+    border-radius: 12px;
+    z-index: 300;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.22);
+    font-size: 13px;
+    font-weight: 600;
+    animation: slideDown 0.3s ease;
+  }
+  .update-banner.show { display: flex; }
+  .update-banner .msg { flex: 1; }
+  .update-banner button {
+    background: #fff; color: var(--ink);
+    border: none; border-radius: 8px;
+    padding: 8px 14px; font: 700 12px inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
   /* Botón instalar app (aparece solo cuando el navegador ofrece instalación) */
   .install-banner {
     display: none;
@@ -962,6 +993,12 @@
     <button class="hist-tool-btn danger" type="button" onclick="vaciarHistorial()">🗑 Vaciar historial</button>
   </div>
   <div class="hist-body" id="histBody"></div>
+</div>
+
+<!-- Aviso de nueva versión -->
+<div class="update-banner" id="updateBanner">
+  <span class="msg">✨ Nueva versión disponible</span>
+  <button type="button" id="btnActualizar">Actualizar</button>
 </div>
 
 <!-- Toast -->
@@ -1329,23 +1366,22 @@
     };
     const src = await loadImage(cropSourceBlob);
 
-    // Aspect del canvas de salida.
-    let targetW, targetH;
-    if (cropSource === 'camera' && tipo === 'dos') {
-      // Tarjeta CR80: 1000 × 630
-      targetW = 1000; targetH = Math.round(1000 / 1.586);
-    } else if (cropSource === 'camera') {
-      // Una cara: mismo aspect que la hoja destino para llenarla.
-      const [sw, sh] = sheetSize();
-      targetW = 900; targetH = Math.round(900 * sh / sw);
-    } else {
-      // Galería: aspecto medio del cuadrilátero.
-      const topW = Math.hypot(q.tr.x - q.tl.x, q.tr.y - q.tl.y);
-      const botW = Math.hypot(q.br.x - q.bl.x, q.br.y - q.bl.y);
-      const lefH = Math.hypot(q.bl.x - q.tl.x, q.bl.y - q.tl.y);
-      const rigH = Math.hypot(q.br.x - q.tr.x, q.br.y - q.tr.y);
-      targetW = Math.max(200, Math.round((topW + botW) / 2));
-      targetH = Math.max(200, Math.round((lefH + rigH) / 2));
+    // Aspecto del canvas de salida = aspecto real del cuadrilátero recortado.
+    // Se calcula como el promedio de los lados opuestos, para que un documento
+    // largo salga largo y uno cuadrado salga cuadrado — sin deformar el corte
+    // hecho por el usuario, sea foto de cámara o imagen subida.
+    const topW = Math.hypot(q.tr.x - q.tl.x, q.tr.y - q.tl.y);
+    const botW = Math.hypot(q.br.x - q.bl.x, q.br.y - q.bl.y);
+    const lefH = Math.hypot(q.bl.x - q.tl.x, q.bl.y - q.tl.y);
+    const rigH = Math.hypot(q.br.x - q.tr.x, q.br.y - q.tr.y);
+    let targetW = Math.max(200, Math.round((topW + botW) / 2));
+    let targetH = Math.max(200, Math.round((lefH + rigH) / 2));
+    // Techo razonable para no generar canvas gigantes.
+    const MAX_SIDE = 2400;
+    if (targetW > MAX_SIDE || targetH > MAX_SIDE) {
+      const k = MAX_SIDE / Math.max(targetW, targetH);
+      targetW = Math.round(targetW * k);
+      targetH = Math.round(targetH * k);
     }
 
     const canvas = document.createElement('canvas');
@@ -1528,24 +1564,28 @@
     ctx.fillRect(0, 0, sheetW, sheetH);
 
     if (tipo === 'dos') {
-      // Misma matemática que NEXO: par centrado y corrido hacia arriba.
+      // Dos tarjetas apiladas. Cada una conserva el aspecto REAL del recorte
+      // del usuario (no se fuerza CR80). Ambas comparten el mismo ancho para
+      // que queden alineadas en la hoja.
       const [imgF, imgB] = await Promise.all([loadImage(frontBlob), loadImage(backBlob)]);
-      const cardW = Math.round(sheetW / 2);
-      const cardH = Math.round(cardW / 1.586);
+      const cardW = Math.round(sheetW * 0.85);
+      const cardFH = Math.round(cardW * imgF.naturalHeight / imgF.naturalWidth);
+      const cardBH = Math.round(cardW * imgB.naturalHeight / imgB.naturalWidth);
       const gap = 100;
-      const pairH = cardH * 2 + gap;
-      const shiftUp = 200;
-      const topY = Math.round((sheetH - pairH) / 2) - shiftUp;
+      const pairH = cardFH + cardBH + gap;
+      // Centrado vertical simple: sin desplazamientos fijos que podrían
+      // sacar el par de la hoja cuando el aspecto real es distinto de CR80.
+      const topY = Math.max(60, Math.round((sheetH - pairH) / 2));
       const x = Math.round((sheetW - cardW) / 2);
-      ctx.drawImage(imgF, x, topY, cardW, cardH);
-      ctx.drawImage(imgB, x, topY + cardH + gap, cardW, cardH);
+      ctx.drawImage(imgF, x, topY, cardW, cardFH);
+      ctx.drawImage(imgB, x, topY + cardFH + gap, cardW, cardBH);
     } else {
-      // Una cara: la imagen llena la hoja al 100 % (modo "cover") — sin franjas
-      // blancas. Si el aspecto de la imagen no coincide con el papel, los bordes
-      // sobrantes se recortan. El usuario puede recortar antes desde galería para
-      // controlar qué queda dentro.
+      // Una cara: la imagen se ENCAJA en la hoja (modo "contain") preservando
+      // su proporción tal como quedó el recorte. Si el documento es largo,
+      // sobra blanco a los lados; si es cuadrado, sobra arriba/abajo — pero
+      // NUNCA se recorta ni se deforma la forma elegida por el usuario.
       const img = await loadImage(uniBlob);
-      const scale = Math.max(sheetW / img.naturalWidth, sheetH / img.naturalHeight);
+      const scale = Math.min(sheetW / img.naturalWidth, sheetH / img.naturalHeight);
       const w = img.naturalWidth * scale;
       const h = img.naturalHeight * scale;
       const x = (sheetW - w) / 2;
@@ -2044,12 +2084,57 @@
 
   // ============= PWA: instalación =============
 
-  // 1. Registrar el service worker (necesario para el prompt de instalación)
+  // 1. Registrar el service worker + detección automática de actualizaciones.
+  //    Al subir una versión nueva (cambiando CACHE en sw.js) todos los
+  //    dispositivos ven el banner "Nueva versión disponible" al abrir la app.
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err =>
-        console.warn('SW no registrado:', err.message)
-      );
+    window.addEventListener('load', async () => {
+      try {
+        const reg = await navigator.serviceWorker.register('sw.js');
+
+        // Fuerza una comprobación de update en cada apertura de la app.
+        reg.update().catch(() => {});
+
+        // Vuelve a comprobar cuando la pestaña recupera foco (usuario abre la PWA).
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        });
+
+        function mostrarAvisoActualizacion(worker) {
+          const banner = document.getElementById('updateBanner');
+          banner.classList.add('show');
+          document.getElementById('btnActualizar').onclick = () => {
+            banner.classList.remove('show');
+            if (worker) worker.postMessage({ type: 'SKIP_WAITING' });
+          };
+        }
+
+        // Si ya había un SW esperando cuando se cargó la página, avisar.
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          mostrarAvisoActualizacion(reg.waiting);
+        }
+
+        // Cuando el navegador detecta un sw.js nuevo, seguir su instalación.
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              mostrarAvisoActualizacion(nw);
+            }
+          });
+        });
+
+        // Cuando el nuevo SW toma control, recargar una sola vez.
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+      } catch (err) {
+        console.warn('SW no registrado:', err.message);
+      }
     });
   }
 
