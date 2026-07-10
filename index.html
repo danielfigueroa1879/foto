@@ -1723,12 +1723,15 @@
   let cropDrag = null;      // { handle, startX, startY, orig, containerRect }
   let cropEnhance = 'natural'; // 'natural' | 'document'
   let cropSource = 'file';  // 'file' | 'camera'
+  let cropInitBox = null;   // {x, y, w, h} normalizado [0..1] respecto a la imagen capturada,
+                            // para arrancar el cuadrilátero sobre el marco verde de la cámara
 
   function abrirRecorte(target, blob, source) {
     cropTarget = target;
     cropSourceBlob = blob;
     cropSource = source || 'file';
     cropEnhance = 'natural';
+    if (cropSource !== 'camera') cropInitBox = null;
     document.querySelectorAll('#filterBar .filter-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.f === 'natural');
     });
@@ -1766,11 +1769,28 @@
   function initCropQuad() {
     const disp = getImageDisplayRect();
     if (!disp.w || !disp.h) return;
-    const margin = 0.06;
-    const x = disp.x + disp.w * margin;
-    const y = disp.y + disp.h * margin;
-    const w = disp.w * (1 - margin * 2);
-    const h = disp.h * (1 - margin * 2);
+    let x, y, w, h;
+    if (cropInitBox && cropInitBox.w > 0 && cropInitBox.h > 0) {
+      // La cámara nos dejó la posición del marco verde (tarjeta o documento)
+      // en coords normalizadas. Convertimos a coords del contenedor para que
+      // el cuadrilátero arranque encima del recorte que el usuario ya encuadró.
+      const nx = clamp(cropInitBox.x, 0, 1);
+      const ny = clamp(cropInitBox.y, 0, 1);
+      const nw = clamp(cropInitBox.w, 0.05, 1);
+      const nh = clamp(cropInitBox.h, 0.05, 1);
+      x = disp.x + nx * disp.w;
+      y = disp.y + ny * disp.h;
+      w = nw * disp.w;
+      h = nh * disp.h;
+      if (x + w > disp.x + disp.w) w = disp.x + disp.w - x;
+      if (y + h > disp.y + disp.h) h = disp.y + disp.h - y;
+    } else {
+      const margin = 0.06;
+      x = disp.x + disp.w * margin;
+      y = disp.y + disp.h * margin;
+      w = disp.w * (1 - margin * 2);
+      h = disp.h * (1 - margin * 2);
+    }
     cropQuad = {
       tl: { x, y },
       tr: { x: x + w, y },
@@ -1858,6 +1878,7 @@
     cropTarget = null;
     cropQuad = null;
     cropDrag = null;
+    cropInitBox = null;
   }
 
   function setFilter(f) {
@@ -2050,6 +2071,30 @@
     // Captura el frame completo (sin recortar al marco) para que el usuario
     // pueda ajustar las 4 esquinas del documento en el paso siguiente aunque
     // el papel se haya salido un poco del cuadro verde.
+    // Antes de capturar, medimos dónde queda el marco verde dentro del
+    // sensor. El video se muestra con object-fit: cover (recorta los bordes),
+    // así que hay que revertir esa transformación para obtener coords reales.
+    let box = null;
+    const cutout = document.getElementById('camCutout');
+    const cw = video.clientWidth, ch = video.clientHeight;
+    if (cutout && cw && ch) {
+      const scale = Math.max(cw / vw, ch / vh);
+      const dispW = vw * scale, dispH = vh * scale;
+      const offX = (cw - dispW) / 2, offY = (ch - dispH) / 2;
+      const vr = video.getBoundingClientRect();
+      const cr = cutout.getBoundingClientRect();
+      const relX = cr.left - vr.left;
+      const relY = cr.top - vr.top;
+      const sx = (relX - offX) / scale;
+      const sy = (relY - offY) / scale;
+      const sw = cr.width / scale;
+      const sh = cr.height / scale;
+      const nx = Math.max(0, Math.min(1, sx / vw));
+      const ny = Math.max(0, Math.min(1, sy / vh));
+      const nw = Math.max(0.05, Math.min(1 - nx, sw / vw));
+      const nh = Math.max(0.05, Math.min(1 - ny, sh / vh));
+      box = { x: nx, y: ny, w: nw, h: nh };
+    }
     const canvas = document.createElement('canvas');
     canvas.width = vw;
     canvas.height = vh;
@@ -2059,6 +2104,7 @@
       if (!blob) { showToast('Error al capturar'); return; }
       const t = camTarget;
       cerrarCamara();
+      cropInitBox = box;
       abrirRecorte(t, blob, 'camera');
     }, 'image/jpeg', 0.95);
   }
