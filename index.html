@@ -809,15 +809,41 @@
     background: #fff;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     object-fit: contain;
+    display: block;
   }
-  .doc-preview-content iframe {
-    width: min(95vw, 900px);
-    height: calc(100vh - 40px);
-    border: none;
+  .doc-preview-pdf {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    max-width: 100%;
+    max-height: calc(100vh - 40px);
+  }
+  .doc-preview-pdf img {
+    max-width: 100%;
+    max-height: calc(100vh - 140px);
     border-radius: 8px;
     background: #fff;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    object-fit: contain;
+    display: block;
   }
+  .doc-preview-open {
+    background: #fff;
+    color: #0A0A0A;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 22px;
+    font: 700 14px inherit;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .doc-preview-open:hover { transform: translateY(-1px); }
   .doc-preview-close {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
@@ -2474,12 +2500,36 @@
     const caption = document.getElementById('docPreviewCaption');
     // Libera cualquier URL previa antes de crear una nueva.
     if (content.dataset.blobUrl) URL.revokeObjectURL(content.dataset.blobUrl);
-    const url = URL.createObjectURL(item.blob);
-    content.dataset.blobUrl = url;
+    if (content.dataset.thumbUrl) URL.revokeObjectURL(content.dataset.thumbUrl);
     const mime = item.mime || '';
-    if (mime.includes('pdf')) {
-      content.innerHTML = `<iframe src="${url}" title="${escapeHtml(item.filename || 'Documento')}"></iframe>`;
+    const esPdf = mime.includes('pdf') || (item.ext || '').toLowerCase() === 'pdf';
+    if (esPdf) {
+      // En muchos móviles (sobre todo iOS Safari) un <iframe> con blob de PDF
+      // no renderiza — se ve un fondo blanco/negro sin contenido. Mostramos la
+      // miniatura ampliada y ofrecemos un botón para abrir el PDF real.
+      const thumbBlob = item.thumbBlob || item.blob;
+      const thumbUrl = URL.createObjectURL(thumbBlob);
+      content.dataset.thumbUrl = thumbUrl;
+      content.innerHTML = `
+        <div class="doc-preview-pdf">
+          <img src="${thumbUrl}" alt="${escapeHtml(item.filename || 'Documento')}">
+          <button type="button" class="doc-preview-open" id="docPreviewOpenBtn">📄 Abrir PDF</button>
+        </div>`;
+      const btn = document.getElementById('docPreviewOpenBtn');
+      if (btn) btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const pdfUrl = URL.createObjectURL(item.blob);
+        // Abrir en pestaña/visor nativo del sistema.
+        const w = window.open(pdfUrl, '_blank');
+        if (!w) {
+          // Bloqueado por el navegador → fuerza descarga.
+          descargarBlob(item.blob, item.filename);
+        }
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
+      });
     } else {
+      const url = URL.createObjectURL(item.blob);
+      content.dataset.blobUrl = url;
       content.innerHTML = `<img src="${url}" alt="${escapeHtml(item.filename || 'Documento')}">`;
     }
     caption.textContent = item.filename || '';
@@ -2501,6 +2551,10 @@
     if (content.dataset.blobUrl) {
       URL.revokeObjectURL(content.dataset.blobUrl);
       delete content.dataset.blobUrl;
+    }
+    if (content.dataset.thumbUrl) {
+      URL.revokeObjectURL(content.dataset.thumbUrl);
+      delete content.dataset.thumbUrl;
     }
     content.innerHTML = '';
     modal.classList.remove('show');
