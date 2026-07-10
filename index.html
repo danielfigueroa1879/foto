@@ -1147,6 +1147,10 @@
   body.dark .recent-badge { background: var(--surface-2); }
   body.dark .recent-title::before { background: var(--ink); }
 
+  /* En modo oscuro el fondo de la página se aclara a gris para que
+     el hero negro contraste bien encima. El hero mantiene su look negro. */
+  body.dark { background: #2a2a33; }
+
   /* ================================================================
      MODO OSCURO — overrides para elementos con colores hard-codeados
      ================================================================
