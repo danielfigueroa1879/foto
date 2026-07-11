@@ -2173,8 +2173,8 @@
       // así nunca queda deformada y sale al tamaño físico correcto al imprimir.
       const [imgF, imgB] = await Promise.all([loadImage(frontBlob), loadImage(backBlob)]);
       const pxPerMm = sheetW / 216;                      // el ancho de la hoja siempre es 216 mm
-      const cardMaxW = Math.round(85.6 * pxPerMm);       // ~476 px
-      const cardMaxH = Math.round(54   * pxPerMm);       // ~300 px
+      const cardMaxW = Math.round(100 * pxPerMm);        // un poco más grande que CR80
+      const cardMaxH = Math.round(63  * pxPerMm);
 
       const scaleF = Math.min(cardMaxW / imgF.naturalWidth, cardMaxH / imgF.naturalHeight);
       const cardFW = Math.round(imgF.naturalWidth  * scaleF);
@@ -2184,7 +2184,7 @@
       const cardBW = Math.round(imgB.naturalWidth  * scaleB);
       const cardBH = Math.round(imgB.naturalHeight * scaleB);
 
-      const gap = Math.round(8 * pxPerMm);               // ~8 mm entre tarjetas
+      const gap = Math.round(14 * pxPerMm);              // ~14 mm entre tarjetas
       const pairH = cardFH + cardBH + gap;
 
       // Centrado horizontal (cada tarjeta con su propio ancho real) y un
