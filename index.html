@@ -158,13 +158,28 @@
     display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
   }
   .back-btn {
-    background: #fff; border: 1.5px solid var(--line); border-radius: 10px;
-    width: 40px; height: 40px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; color: var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--line-strong);
+    border-radius: 12px;
+    width: 48px; height: 48px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ink);
+    font-size: 0;               /* oculta cualquier texto/‹ del HTML */
     -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, border-color 0.15s, transform 0.05s;
+    order: 2;                   /* siempre al lado derecho del encabezado */
+    margin-left: auto;          /* fuerza empujar a la derecha si no hay flex:1 */
+  }
+  .back-btn::before {
+    content: '';
+    display: block;
+    width: 26px; height: 26px;
+    background: currentColor;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M15 5l-7 7 7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/22px 22px no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M15 5l-7 7 7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/22px 22px no-repeat;
   }
   .back-btn:hover { background: var(--bg); }
+  .back-btn:active { transform: scale(0.94); }
   .step-title {
     flex: 1; font-size: 15px; font-weight: 700; color: var(--ink);
   }
@@ -308,11 +323,18 @@
   .opt-btn strong { display: block; font-size: 18px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.01em; }
   .opt-btn small { display: block; opacity: 0.65; font-size: 13px; line-height: 1.35; }
   .opt-btn .opt-arrow {
-    font-size: 22px; opacity: 0.3; flex-shrink: 0;
+    display: inline-block;
+    width: 22px; height: 22px;
+    font-size: 0;                 /* oculta el › del HTML */
+    background: currentColor;
+    opacity: 0.35;
+    flex-shrink: 0;
     transition: opacity 0.15s, transform 0.15s;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M9 5l7 7-7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/20px 20px no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M9 5l7 7-7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/20px 20px no-repeat;
   }
-  .opt-btn:hover .opt-arrow { opacity: 0.6; transform: translateX(2px); }
-  .opt-btn.active .opt-arrow { opacity: 0.9; }
+  .opt-btn:hover .opt-arrow { opacity: 0.7; transform: translateX(2px); }
+  .opt-btn.active .opt-arrow { opacity: 1; }
 
   .slots { display: grid; gap: 10px; }
   .slots.two { grid-template-columns: 1fr 1fr; }
@@ -1135,12 +1157,14 @@
     border: 1px solid var(--line);
   }
   .recent-arrow {
-    font-size: 22px;
-    color: var(--ink-mute);
-    opacity: 0.55;
+    display: inline-block;
+    width: 22px; height: 22px;
+    font-size: 0;                 /* oculta el › del HTML */
+    background: var(--ink-mute);
+    opacity: 0.75;
     flex-shrink: 0;
-    font-weight: 300;
-    line-height: 1;
+    -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M9 5l7 7-7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/20px 20px no-repeat;
+            mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M9 5l7 7-7 7' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/20px 20px no-repeat;
   }
   body.dark .recent-item { background: var(--surface); border-color: var(--line); }
   body.dark .recent-thumb { background: var(--surface-2); }
@@ -1187,6 +1211,15 @@
   body.dark .slot-btn:hover,
   body.dark .upload-chip:hover,
   body.dark .hist-btn:hover { background: #2b2b33; border-color: var(--line-strong); }
+
+  /* Botón de volver en modo noche: contraste alto para que el chevron cante */
+  body.dark .back-btn {
+    background: var(--surface);
+    border-color: var(--line-strong);
+    color: #ffffff;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset;
+  }
+  body.dark .back-btn:hover { background: #2f2f38; border-color: #7a7a85; }
 
   /* Tarjetas de historial y modal */
   body.dark .hist-modal { background: var(--bg); }
