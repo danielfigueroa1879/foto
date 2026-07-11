@@ -2168,21 +2168,33 @@
     ctx.fillRect(0, 0, sheetW, sheetH);
 
     if (tipo === 'dos') {
-      // Dos tarjetas apiladas. Cada una conserva el aspecto REAL del recorte
-      // del usuario (no se fuerza CR80). Ambas comparten el mismo ancho para
-      // que queden alineadas en la hoja.
+      // Dos tarjetas apiladas a TAMAÑO REAL de carnet (CR80: 85.6 × 54 mm).
+      // Cada imagen se ENCAJA dentro de esa caja preservando su aspecto,
+      // así nunca queda deformada y sale al tamaño físico correcto al imprimir.
       const [imgF, imgB] = await Promise.all([loadImage(frontBlob), loadImage(backBlob)]);
-      const cardW = Math.round(sheetW * 0.85);
-      const cardFH = Math.round(cardW * imgF.naturalHeight / imgF.naturalWidth);
-      const cardBH = Math.round(cardW * imgB.naturalHeight / imgB.naturalWidth);
-      const gap = 100;
+      const pxPerMm = sheetW / 216;                      // el ancho de la hoja siempre es 216 mm
+      const cardMaxW = Math.round(85.6 * pxPerMm);       // ~476 px
+      const cardMaxH = Math.round(54   * pxPerMm);       // ~300 px
+
+      const scaleF = Math.min(cardMaxW / imgF.naturalWidth, cardMaxH / imgF.naturalHeight);
+      const cardFW = Math.round(imgF.naturalWidth  * scaleF);
+      const cardFH = Math.round(imgF.naturalHeight * scaleF);
+
+      const scaleB = Math.min(cardMaxW / imgB.naturalWidth, cardMaxH / imgB.naturalHeight);
+      const cardBW = Math.round(imgB.naturalWidth  * scaleB);
+      const cardBH = Math.round(imgB.naturalHeight * scaleB);
+
+      const gap = Math.round(8 * pxPerMm);               // ~8 mm entre tarjetas
       const pairH = cardFH + cardBH + gap;
-      // Centrado vertical simple: sin desplazamientos fijos que podrían
-      // sacar el par de la hoja cuando el aspecto real es distinto de CR80.
-      const topY = Math.max(60, Math.round((sheetH - pairH) / 2));
-      const x = Math.round((sheetW - cardW) / 2);
-      ctx.drawImage(imgF, x, topY, cardW, cardFH);
-      ctx.drawImage(imgB, x, topY + cardFH + gap, cardW, cardBH);
+
+      // Centrado horizontal (cada tarjeta con su propio ancho real) y un
+      // poco más arriba del centro vertical (~10% de la hoja hacia arriba).
+      const centerY = Math.round((sheetH - pairH) / 2);
+      const shiftUp = Math.round(sheetH * 0.10);
+      const topY   = Math.max(60, centerY - shiftUp);
+
+      ctx.drawImage(imgF, Math.round((sheetW - cardFW) / 2), topY,                    cardFW, cardFH);
+      ctx.drawImage(imgB, Math.round((sheetW - cardBW) / 2), topY + cardFH + gap,     cardBW, cardBH);
     } else {
       // Una cara: la imagen se ENCAJA en la hoja (modo "contain") preservando
       // su proporción tal como quedó el recorte. Si el documento es largo,
